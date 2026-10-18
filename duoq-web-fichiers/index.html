@@ -1044,14 +1044,79 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
     }
     return out;
   }
-  var avMemo=new Map();
-  function avatarSVG(cfg,headOnly){
-    var c=normAvatar(cfg),key=JSON.stringify(c),body=avMemo.get(key);
-    if(!body){
-      if(avMemo.size>200)avMemo.clear();
-      body=gridToRects(outline(buildGrid(c)));avMemo.set(key,body);
+  /* ---------- rendu HD : lissage des diagonales (Scale2x x2) + ombrage doux, rendu en image ---------- */
+  var HD_PASSES=2;
+  function scale2x(g,w,h){
+    var W=w*2,out=new Array(W*h*2),x,y;
+    function at(xx,yy,d){return (xx<0||yy<0||xx>=w||yy>=h)?d:g[yy*w+xx];}
+    for(y=0;y<h;y++)for(x=0;x<w;x++){
+      var P=g[y*w+x],A=at(x,y-1,P),B=at(x+1,y,P),C=at(x-1,y,P),D=at(x,y+1,P);
+      var o1=P,o2=P,o3=P,o4=P;
+      if(A!==D&&C!==B){
+        if(C===A)o1=A;
+        if(A===B)o2=B;
+        if(D===C)o3=C;
+        if(B===D)o4=D;
+      }
+      out[(y*2)*W+x*2]=o1;out[(y*2)*W+x*2+1]=o2;out[(y*2+1)*W+x*2]=o3;out[(y*2+1)*W+x*2+1]=o4;
     }
-    return '<svg viewBox="'+(headOnly?"3 0 26 26":"0 0 32 48")+'" shape-rendering="crispEdges" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'+body+'</svg>';
+    return out;
+  }
+  var shMemo={};
+  function shadeCol(col,t){
+    var k=col+"|"+t,v=shMemo[k];if(v)return v;
+    if(col.charAt(0)!=="#"||col.length!==7||col===OUTL||col===LASH)return (shMemo[k]=col);
+    return (shMemo[k]=(t>0?tint(col,t):shade(col,-t)));
+  }
+  /* volume : bord haut-gauche éclairci, bord bas-droite assombri (sur ~1 px d'origine) */
+  function relight(g,w,h,band){
+    var o=g.slice(),x,y,c,k;
+    function diff(xx,yy,c0){if(xx<0||yy<0||xx>=w||yy>=h)return true;var n=g[yy*w+xx];return n!==c0&&(n===null||n===OUTL||n===undefined||(typeof n==="string"&&n.charAt(0)!=="#"));}
+    for(y=0;y<h;y++)for(x=0;x<w;x++){
+      c=g[y*w+x];if(!c||c===OUTL||c===LASH||c.charAt(0)!=="#")continue;
+      var hi=false,lo=false;
+      for(k=1;k<=band;k++){
+        if(diff(x-k,y-k,c)||diff(x,y-k,c)||diff(x-k,y,c))hi=true;
+        if(diff(x+k,y+k,c)||diff(x,y+k,c)||diff(x+k,y,c))lo=true;
+      }
+      if(hi&&!lo)o[y*w+x]=shadeCol(c,.16);
+      else if(lo&&!hi)o[y*w+x]=shadeCol(c,-.16);
+    }
+    return o;
+  }
+  function hdImage(grid,w,h,passes,light){
+    var g=grid,i;
+    for(i=0;i<passes;i++){g=scale2x(g,w,h);w*=2;h*=2;}
+    if(light)g=relight(g,w,h,3);
+    var cv=document.createElement("canvas");cv.width=w;cv.height=h;
+    var ctx=cv.getContext("2d"),x,y,x2,col;
+    for(y=0;y<h;y++){
+      x=0;
+      while(x<w){
+        col=g[y*w+x];
+        if(!col){x++;continue;}
+        x2=x;while(x2+1<w&&g[y*w+x2+1]===col)x2++;
+        ctx.fillStyle=col;ctx.fillRect(x,y,x2-x+1,1);
+        x=x2+1;
+      }
+    }
+    return cv.toDataURL("image/png");
+  }
+  var avMemo=new Map(),avHdMemo=new Map();
+  function isPixelAv(c){return JSON.stringify(c)===JSON.stringify(normAvatar(BOT_AV));}
+  function avatarSVG(cfg,headOnly){
+    var c=normAvatar(cfg),key=JSON.stringify(c),vb=(headOnly?"3 0 26 26":"0 0 32 48");
+    if(isPixelAv(c)){ /* Pixel garde son rendu d'origine */
+      var body=avMemo.get(key);
+      if(!body){body=gridToRects(outline(buildGrid(c)));avMemo.set(key,body);}
+      return '<svg viewBox="'+vb+'" shape-rendering="crispEdges" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'+body+'</svg>';
+    }
+    var url=avHdMemo.get(key);
+    if(!url){
+      if(avHdMemo.size>150)avHdMemo.clear();
+      url=hdImage(outline(buildGrid(c)),AW,AH,HD_PASSES,true);avHdMemo.set(key,url);
+    }
+    return '<svg viewBox="'+vb+'" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><image href="'+url+'" x="0" y="0" width="'+AW+'" height="'+AH+'" preserveAspectRatio="none"/></svg>';
   }
   function avBg(cfg){
     var c=normAvatar(cfg);
@@ -1061,7 +1126,7 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
     return '<span class="av'+(cls?" "+cls:"")+'" style="background:'+avBg(cfg)+'">'+avatarSVG(cfg,true)+'</span>';
   }
   function avFull(cfg,cls){
-    var c=normAvatar(cfg),pet=(c.pet!=="none")?'<span class="pet">'+petSVG(c.pet,c.petVar)+'</span>':"";
+    var c=normAvatar(cfg),pet=(c.pet!=="none")?'<span class="pet">'+petSVG(c.pet,c.petVar,isPixelAv(c))+'</span>':"";
     return '<span class="av full'+(pet?" haspet":"")+(cls?" "+cls:"")+'" style="background:'+avBg(cfg)+'">'+avatarSVG(cfg,false)+pet+'</span>';
   }
 
@@ -1338,10 +1403,10 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
   var PET_FREE=["dog","cat"];
   function petDef(id){for(var i=0;i<PETS.length;i++)if(PETS[i].id===id)return PETS[i];return null;}
   var petMemo=new Map();
-  function petSVG(id,vi){
+  function petSVG(id,vi,legacy){
     var d=petDef(id);if(!d)return "";
     vi=(vi>=0&&vi<d.v.length)?vi:0;
-    var key=id+"#"+vi,out=petMemo.get(key);
+    var key=id+"#"+vi+(legacy?"L":""),out=petMemo.get(key);
     if(out)return out;
     var c=petCtx(),pal=d.v[vi];
     PDRAW[id](c,pal);
@@ -1350,22 +1415,26 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
       if(g[y*PW+x])continue;
       if((x>0&&g[y*PW+x-1])||(x<PW-1&&g[y*PW+x+1])||(y>0&&g[(y-1)*PW+x])||(y<PH-1&&g[(y+1)*PW+x]))o[y*PW+x]=OUTL;
     }
-    var body="";
     for(x=1;x<PW-1;x++)for(y=21;y<=22;y++)if(!o[y*PW+x]){
       var dx=(x+.5-14)/13,dy=(y+.5-21.6)/1.1;
       if(dx*dx+dy*dy<=1)o[y*PW+x]="rgba(0,0,0,.32)";
     }
-    for(y=0;y<PH;y++){
-      x=0;
-      while(x<PW){
-        var col=o[y*PW+x];
-        if(!col){x++;continue;}
-        var x2=x;while(x2+1<PW&&o[y*PW+x2+1]===col)x2++;
-        body+='<rect x="'+x+'" y="'+y+'" width="'+(x2-x+1)+'" height="1" fill="'+col+'"/>';
-        x=x2+1;
+    if(!legacy){
+      out='<svg viewBox="0 0 '+PW+' '+PH+'" preserveAspectRatio="xMidYMax meet" aria-hidden="true"><image href="'+hdImage(o,PW,PH,HD_PASSES,true)+'" x="0" y="0" width="'+PW+'" height="'+PH+'" preserveAspectRatio="none"/></svg>';
+    }else{
+      var body="";
+      for(y=0;y<PH;y++){
+        x=0;
+        while(x<PW){
+          var col=o[y*PW+x];
+          if(!col){x++;continue;}
+          var x2=x;while(x2+1<PW&&o[y*PW+x2+1]===col)x2++;
+          body+='<rect x="'+x+'" y="'+y+'" width="'+(x2-x+1)+'" height="1" fill="'+col+'"/>';
+          x=x2+1;
+        }
       }
+      out='<svg viewBox="0 0 '+PW+' '+PH+'" shape-rendering="crispEdges" preserveAspectRatio="xMidYMax meet" aria-hidden="true">'+body+'</svg>';
     }
-    out='<svg viewBox="0 0 '+PW+' '+PH+'" shape-rendering="crispEdges" preserveAspectRatio="xMidYMax meet" aria-hidden="true">'+body+'</svg>';
     if(petMemo.size>120)petMemo.clear();
     petMemo.set(key,out);
     return out;
@@ -2227,7 +2296,7 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
   /* ---------- Easter egg : Pixel, l'unique faux profil (IA) ---------- */
   var BOT_ID="duoq-bot";
   var BOT_AV={skin:1,face:"oval",hair:"twin",hairColor:14,eye:7,beard:"none",glasses:"none",head:"none",headColor:2,headset:true,earrings:false,freckles:true,gloves:false,
-    top:"jacket",topColor:4,bottom:"skirt",botColor:3,shoeColor:2,pose:"victory",bg:8,pet:"cat",petVar:1};
+    top:"jacket",topColor:4,bottom:"skirt",botColor:3,shoeColor:2,pose:"victory",bg:8,look:"f",pet:"cat",petVar:1};
   var BOT_P={id:BOT_ID,pseudo:"Pixel",age:24,dist:true,bio:"Gameuse de canapé. Ranked chill, pixel art et Mario Kart sans rancune.",role:"gameuse",looking:"both",
     style:"Chill",plat:["PC","Switch"],jeux:["Valorant","Minecraft","Stardew Valley","Animal Crossing","Mario Kart","Zelda"],avatar:normAvatar(BOT_AV),pub:null,terms:null,zone:null};
   var BOT_R={p:BOT_P,likedMe:false,bot:true};
