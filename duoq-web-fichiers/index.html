@@ -120,10 +120,31 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
 .aved{display:flex;flex-direction:column;gap:16px;background:var(--panel);backdrop-filter:blur(8px);border:1.5px solid rgba(46,242,255,.45);border-radius:18px;padding:14px;box-shadow:0 0 26px rgba(46,242,255,.16)}
 .aved .prev{height:190px;width:auto;aspect-ratio:2/3;margin:0 auto;border-radius:18px;border:2px solid rgba(255,79,195,.7);box-shadow:0 0 24px rgba(255,79,195,.4)}
 .aved .grp{display:grid;gap:7px}
-.swatches{display:flex;flex-wrap:wrap;gap:9px}
-.sw{width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.35);padding:0;transition:transform .12s,box-shadow .2s}
+.swatches{display:flex;flex-wrap:wrap;gap:12px}
+.sw{width:46px;height:46px;border-radius:50%;border:2px solid rgba(255,255,255,.35);padding:0;transition:transform .12s,box-shadow .2s}
 .sw:active{transform:scale(.9)}
 .sw[aria-pressed=true]{outline:2px solid var(--cyan);outline-offset:3px;box-shadow:0 0 14px rgba(46,242,255,.8)}
+
+#pform>*,.aved>*{min-width:0}
+.aved{max-width:100%}
+.avsteps{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:thin}
+.avstepb{flex:none;display:flex;align-items:center;gap:7px;padding:8px 13px;border-radius:999px;border:1.5px solid var(--line);background:rgba(155,107,255,.1);color:var(--fg);font-weight:600;font-size:14px}
+.avstepb i{font-style:normal;font-family:var(--f-mono);font-size:12px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.12)}
+.avstepb[aria-selected=true]{background:var(--cyan);color:var(--cyan-ink);border-color:var(--cyan);box-shadow:0 0 16px rgba(46,242,255,.55)}
+.avstepb[aria-selected=true] i{background:rgba(3,31,38,.2)}
+.avtitle{margin:2px 0 0;font-family:var(--f-display);font-size:24px;color:var(--pink);text-shadow:0 0 14px rgba(255,79,195,.5)}
+.avgroups{display:grid;gap:0}
+.avgroups .grp{padding:16px 0;border-top:1.5px solid var(--line)}
+.avgroups .grp:first-child{border-top:0;padding-top:4px}
+.avgroups .lbl{font-family:var(--f-display);font-size:18px;letter-spacing:.01em;text-transform:none;color:var(--fg);opacity:1;justify-content:flex-start}
+.avgroups .opt.sm{padding:10px 16px;font-size:16px}
+#pet-box .lbl{font-family:var(--f-display);font-size:18px;letter-spacing:.01em;text-transform:none;color:var(--fg);opacity:1}
+.avnav{display:flex;gap:10px;justify-content:space-between;padding-top:6px}
+.avnav .btn{flex:1}
+.avnav .btn[disabled]{opacity:.35}
+.addgame{display:flex;gap:8px}
+.addgame input{flex:1;min-width:0}
+.addgame .btn{flex:none}
 .photo-row{display:flex;gap:12px;align-items:center}
 .ph{width:72px;height:72px;border-radius:14px;background:rgba(14,9,40,.7);border:1.5px dashed var(--line);overflow:hidden;display:grid;place-items:center;font-size:11px;color:var(--muted);text-align:center;flex:none}
 .ph img{width:100%;height:100%;object-fit:cover;display:block}
@@ -362,8 +383,11 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
           <div class="aved">
             <span class="lbl"><span>Mon avatar</span><button type="button" class="link" id="av-rand" style="padding:0">Au hasard</button></span>
             <div class="prevwrap"><span class="av prev full" id="av-prev"></span><button type="button" class="lk-sum" id="av-lock" data-lkopen hidden></button></div>
-            <div id="av-groups" style="display:grid;gap:14px"></div>
-            <div class="grp" id="pet-box"></div>
+            <div id="av-steps" class="avsteps" role="tablist" aria-label="Étapes de création"></div>
+            <h3 class="avtitle" id="av-title"></h3>
+            <div id="av-groups" class="avgroups"></div>
+            <div class="grp" id="pet-box" hidden></div>
+            <div class="avnav"><button type="button" class="btn ghost" id="av-prev">← Précédent</button><button type="button" class="btn primary" id="av-next">Suivant →</button></div>
           </div>
 
           <div class="field">
@@ -390,7 +414,11 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
             </div>
             <p class="note" id="zone-note">Ta position exacte n'est jamais enregistrée : elle est arrondie à une zone d'environ 10 km. Les autres voient seulement une distance approximative.</p>
           </div>
-          <div class="field"><span class="lbl"><span>Mes jeux</span><span id="jcount">0/8</span></span><div id="g-jeux" style="display:grid;gap:8px"></div></div>
+          <div class="field"><span class="lbl"><span>Mes jeux</span><span id="jcount">0/8</span></span><div id="g-jeux" style="display:grid;gap:8px"></div>
+            <p class="sublbl">Ton jeu n'est pas dans la liste ? Écris-le :</p>
+            <div class="addgame"><input type="text" id="game-in" maxlength="30" placeholder="Ex. : Hollow Knight" autocomplete="off" enterkeyhint="done"><button type="button" class="btn ghost" id="game-add">Ajouter</button></div>
+            <div class="opts" id="g-custom"></div>
+            <p class="note">Peu importe comment tu l'écris (« csgo », « CS 2 »…) : DuoQ regroupe automatiquement les écritures proches pour retrouver les joueurs du même jeu.</p></div>
           <div class="field"><span class="lbl"><span>Plateformes</span><span>facultatif</span></span><div class="opts" id="g-plat"></div></div>
           <div class="field"><span class="lbl"><span>Style de jeu</span><span>facultatif</span></span><div class="opts" id="g-style"></div></div>
 
@@ -561,6 +589,33 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
   var MULTI=["Valorant","League of Legends","Minecraft","World of Warcraft","Fortnite","Counter-Strike 2","Apex Legends","Overwatch 2","Rocket League","Call of Duty","Roblox","GTA Online","EA Sports FC","Dota 2","Rainbow Six Siege","Genshin Impact","Among Us","Mario Kart","Animal Crossing","Stardew Valley"];
   var SOLO=["Zelda","Elden Ring","Red Dead Redemption 2"];
   var GAMES=MULTI.concat(SOLO);
+  /* jeux libres : on normalise l'écriture pour que « csgo », « CS 2 » et « Counter Strike » deviennent le même jeu */
+  var GAME_ALIAS={"cs":"Counter-Strike 2","cs2":"Counter-Strike 2","csgo":"Counter-Strike 2","counterstrike":"Counter-Strike 2","counterstrike2":"Counter-Strike 2",
+    "lol":"League of Legends","leagueoflegends":"League of Legends","league":"League of Legends","wow":"World of Warcraft","worldofwarcraft":"World of Warcraft",
+    "cod":"Call of Duty","callofduty":"Call of Duty","warzone":"Call of Duty","r6":"Rainbow Six Siege","siege":"Rainbow Six Siege","rainbowsix":"Rainbow Six Siege","rainbowsixsiege":"Rainbow Six Siege",
+    "gta":"GTA Online","gta5":"GTA Online","gtav":"GTA Online","gtaonline":"GTA Online","fifa":"EA Sports FC","fc":"EA Sports FC","fc24":"EA Sports FC","fc25":"EA Sports FC","fc26":"EA Sports FC","easportsfc":"EA Sports FC",
+    "ow":"Overwatch 2","ow2":"Overwatch 2","overwatch":"Overwatch 2","apex":"Apex Legends","apexlegends":"Apex Legends","rl":"Rocket League","rocketleague":"Rocket League",
+    "valo":"Valorant","mc":"Minecraft","fn":"Fortnite","fortnite":"Fortnite","genshin":"Genshin Impact","genshinimpact":"Genshin Impact","amongus":"Among Us",
+    "mk":"Mario Kart","mariokart":"Mario Kart","mk8":"Mario Kart","acnh":"Animal Crossing","animalcrossing":"Animal Crossing","stardew":"Stardew Valley","stardewvalley":"Stardew Valley",
+    "zelda":"Zelda","botw":"Zelda","totk":"Zelda","eldenring":"Elden Ring","er":"Elden Ring","rdr2":"Red Dead Redemption 2","reddeadredemption2":"Red Dead Redemption 2","reddead":"Red Dead Redemption 2","dota":"Dota 2","dota2":"Dota 2"};
+  function gkey(x){return String(x).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]/g,"");}
+  function lev(a,b){
+    if(a===b)return 0;var m=a.length,n=b.length;if(!m)return n;if(!n)return m;
+    var prev=[],cur=[],i,j;for(j=0;j<=n;j++)prev[j]=j;
+    for(i=1;i<=m;i++){cur[0]=i;for(j=1;j<=n;j++)cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a.charAt(i-1)===b.charAt(j-1)?0:1));prev=cur.slice();}
+    return prev[n];
+  }
+  function tolerant(a,b){var d=lev(a,b),L=Math.max(a.length,b.length);return d===0||(L>=5&&d<=1)||(L>=9&&d<=2);}
+  function canonGame(x){
+    var raw=String(x||"").replace(/[\u0000-\u001f]/g," ").replace(/\s+/g," ").trim().slice(0,30);
+    var k=gkey(raw);if(!k)return "";
+    if(GAME_ALIAS[k])return GAME_ALIAS[k];
+    for(var i=0;i<GAMES.length;i++)if(gkey(GAMES[i])===k)return GAMES[i];
+    for(var j=0;j<GAMES.length;j++)if(tolerant(gkey(GAMES[j]),k))return GAMES[j];
+    return raw.replace(/(^|\s)(\S)/g,function(m,a,b){return a+b.toUpperCase();});
+  }
+  function sameGame(a,b){return a===b||tolerant(gkey(a),gkey(b));}
+  function hasGame(list,g){for(var i=0;i<list.length;i++)if(sameGame(list[i],g))return true;return false;}
   var PLATS=["PC","PS5","Xbox","Switch"];
   var STYLES=["Compétitif","Co-op","Chill","Complétionniste"];
   var INTENTS=["Relation sérieuse","Rencontres sans pression","D'abord jouer ensemble"];
@@ -589,7 +644,8 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
     head:["none","beanie","cap","veil","band","catears","bunny","crown","cowboy","wizard","horns"],
     top:["tee","crop","hoodie","tank","stripes","jacket","armor"],
     bottom:["shorts","pants","skirt","cargo","longskirt"],
-    pose:["guard","relax","victory"]
+    pose:["guard","relax","victory"],
+    look:["n","m","f"]
   };
   var FREE_ENUM={
     face:["round","oval","square"],
@@ -603,26 +659,33 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
   };
   var TOGS=["headset","earrings","freckles","gloves","scar","mole","paint","plaster","scarf","necklace","cape","wings"];
   var FREE_TOG=["headset","earrings","freckles","gloves"];
+  var HAIR_OPTS=[["short","Courts"],["buzz","Rasés"],["long","Longs"],["bob","Carré"],["bun","Chignon"],["pony","Queue"],["curly","Bouclés"],["afro","Afro"],["bald","Chauve"],["spiky","Hérissés"],["mohawk","Crête"],["twin","Couettes"],["braid","Tresse"],["mullet","Mulet"],["emo","Frange"],["spacebuns","Macarons"],["pompadour","Banane"],["dreads","Dreads"]];
+  var HEAD_OPTS=[["none","Aucun"],["beanie","Bonnet"],["cap","Casquette"],["veil","Voile"],["band","Bandeau"],["catears","Oreilles de chat"],["bunny","Oreilles tombantes"],["crown","Couronne"],["cowboy","Cowboy"],["wizard","Sorcier"],["horns","Cornes"]];
+  var AV_STEPS=[[1,"Base"],[2,"Visage"],[3,"Cheveux"],[4,"Tête"],[5,"Habits"],[6,"Corps"],[7,"Pose"],[8,"Compagnon"]];
   var AV_GROUPS=[
-    {t:"Peau",k:"skin",type:"sw",c:SKIN},
-    {t:"Forme du visage",k:"face",type:"chips",o:[["round","Rond"],["oval","Ovale"],["square","Carré"]]},
-    {t:"Traits du visage",type:"tog",o:[["freckles","Taches de rousseur"],["scar","Cicatrice"],["mole","Grain de beauté"],["paint","Peinture néon"],["plaster","Pansement"]]},
-    {t:"Coiffure",k:"hair",type:"chips",o:[["short","Courts"],["buzz","Rasés"],["long","Longs"],["bob","Carré"],["bun","Chignon"],["pony","Queue"],["curly","Bouclés"],["afro","Afro"],["bald","Chauve"],["spiky","Hérissés"],["mohawk","Crête"],["twin","Couettes"],["braid","Tresse"],["mullet","Mulet"],["emo","Frange"],["spacebuns","Macarons"],["pompadour","Banane"],["dreads","Dreads"]]},
-    {t:"Couleur des cheveux",k:"hairColor",type:"sw",c:HAIR},
-    {t:"Yeux",k:"eye",type:"sw",c:EYES},
-    {t:"Barbe",k:"beard",type:"chips",o:[["none","Aucune"],["stubble","3 jours"],["beard","Barbe"],["mous","Moustache"],["goatee","Bouc"],["handle","Guidon"]]},
-    {t:"Lunettes",k:"glasses",type:"chips",o:[["none","Aucune"],["round","Rondes"],["square","Carrées"],["sun","Soleil"],["heart","Cœur"],["visor","Visière"],["pixel","8-bit"]]},
-    {t:"Couvre-chef",k:"head",type:"chips",o:[["none","Aucun"],["beanie","Bonnet"],["cap","Casquette"],["veil","Voile"],["band","Bandeau"],["catears","Oreilles de chat"],["bunny","Oreilles tombantes"],["crown","Couronne"],["cowboy","Cowboy"],["wizard","Sorcier"],["horns","Cornes"]]},
-    {t:"Couleur du couvre-chef, des gants, de l'écharpe, de la cape et des ailes",k:"headColor",type:"sw",c:ACC},
-    {t:"Accessoires",type:"tog",o:[["headset","Casque gaming"],["earrings","Boucles d'oreilles"],["gloves","Gants sans doigts"],["scarf","Écharpe"],["necklace","Collier"],["cape","Cape"],["wings","Ailes"]]},
-    {t:"Haut",k:"top",type:"chips",o:[["tee","T-shirt"],["crop","Crop top"],["hoodie","Sweat"],["tank","Débardeur"],["stripes","Marinière"],["jacket","Veste"],["armor","Armure"]]},
-    {t:"Couleur du haut",k:"topColor",type:"sw",c:TOPS},
-    {t:"Bas",k:"bottom",type:"chips",o:[["shorts","Short"],["pants","Pantalon"],["skirt","Jupe"],["cargo","Cargo"],["longskirt","Jupe longue"]]},
-    {t:"Couleur du bas",k:"botColor",type:"sw",c:BOTS},
-    {t:"Chaussures",k:"shoeColor",type:"sw",c:SHOES},
-    {t:"Pose",k:"pose",type:"chips",o:[["guard","En garde"],["relax","Détendu"],["victory","Victoire"]]},
-    {t:"Fond",k:"bg",type:"sw",c:BGS}
+    {s:1,t:"Style du visage",k:"look",type:"chips",o:[["m","Masculin"],["n","Neutre"],["f","Féminin"]]},
+    {s:1,t:"Peau",k:"skin",type:"sw",c:SKIN},
+    {s:1,t:"Forme du visage",k:"face",type:"chips",o:[["round","Rond"],["oval","Ovale"],["square","Carré"]]},
+    {s:2,t:"Yeux",k:"eye",type:"sw",c:EYES},
+    {s:2,t:"Traits du visage",type:"tog",o:[["freckles","Taches de rousseur"],["scar","Cicatrice"],["mole","Grain de beauté"],["paint","Peinture néon"],["plaster","Pansement"]]},
+    {s:2,t:"Barbe",k:"beard",type:"chips",o:[["none","Aucune"],["stubble","3 jours"],["beard","Barbe"],["mous","Moustache"],["goatee","Bouc"],["handle","Guidon"]]},
+    {s:2,t:"Lunettes",k:"glasses",type:"chips",o:[["none","Aucune"],["round","Rondes"],["square","Carrées"],["sun","Soleil"],["heart","Cœur"],["visor","Visière"],["pixel","8-bit"]]},
+    {s:3,t:"Coiffure",k:"hair",type:"chips",o:HAIR_OPTS},
+    {s:3,t:"Couleur des cheveux",k:"hairColor",type:"sw",c:HAIR},
+    {s:4,t:"Couvre-chef",k:"head",type:"chips",o:HEAD_OPTS},
+    {s:4,t:"Couleur du couvre-chef",k:"headColor",type:"sw",c:ACC},
+    {s:4,t:"Accessoires de tête",type:"tog",o:[["headset","Casque gaming"],["earrings","Boucles d'oreilles"]]},
+    {s:5,t:"Haut",k:"top",type:"chips",o:[["tee","T-shirt"],["crop","Crop top"],["hoodie","Sweat"],["tank","Débardeur"],["stripes","Marinière"],["jacket","Veste"],["armor","Armure"]]},
+    {s:5,t:"Couleur du haut",k:"topColor",type:"sw",c:TOPS},
+    {s:5,t:"Bas",k:"bottom",type:"chips",o:[["shorts","Short"],["pants","Pantalon"],["skirt","Jupe"],["cargo","Cargo"],["longskirt","Jupe longue"]]},
+    {s:5,t:"Couleur du bas",k:"botColor",type:"sw",c:BOTS},
+    {s:5,t:"Chaussures",k:"shoeColor",type:"sw",c:SHOES},
+    {s:6,t:"Accessoires du corps",type:"tog",o:[["gloves","Gants sans doigts"],["scarf","Écharpe"],["necklace","Collier"],["cape","Cape"],["wings","Ailes"]]},
+    {s:6,t:"Couleur des gants, écharpe, cape et ailes",k:"headColor",type:"sw",c:ACC,dup:1},
+    {s:7,t:"Pose",k:"pose",type:"chips",o:[["guard","En garde"],["relax","Détendu"],["victory","Victoire"]]},
+    {s:7,t:"Fond",k:"bg",type:"sw",c:BGS}
   ];
+
   function normAvatar(a){
     a=(a&&typeof a==="object")?a:{};
     function pick(k){var v=a[k];return AV_ENUMS[k].indexOf(v)!==-1?v:AV_ENUMS[k][0];}
@@ -630,7 +693,7 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
     var pd=petDef(a.pet),o={skin:idx("skin",SKIN.length),face:pick("face"),hair:pick("hair"),hairColor:idx("hairColor",HAIR.length),eye:idx("eye",EYES.length),
       beard:pick("beard"),glasses:pick("glasses"),head:pick("head"),headColor:idx("headColor",ACC.length),
       top:pick("top"),topColor:idx("topColor",TOPS.length),bottom:pick("bottom"),botColor:idx("botColor",BOTS.length),
-      shoeColor:idx("shoeColor",SHOES.length),pose:pick("pose"),bg:idx("bg",BGS.length),
+      shoeColor:idx("shoeColor",SHOES.length),pose:pick("pose"),look:pick("look"),bg:idx("bg",BGS.length),
       pet:pd?pd.id:"none",petVar:pd?idx("petVar",pd.v.length):0};
     TOGS.forEach(function(t){o[t]=a[t]===true;});
     return o;
@@ -821,7 +884,11 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
     for(y=7;y<=21;y++)H(y,FX[y],skin);
     H(21,FX[21],skinD);
     R(FX[19],19,1,1,skin);
-    M(9,16,blend(skin,"#ff6f91",.42));M(10,16,blend(skin,"#ff6f91",.42));
+    var lk=c.look||"n";
+    var cheek=lk==="f"?blend(skin,"#ff6f91",.42):(lk==="n"?blend(skin,"#ff6f91",.12):skin);
+    var lipC=lk==="f"?"#c4403f":(lk==="n"?blend(skin,"#b8504d",.55):blend(skin,"#9a5a50",.5));
+    var lipC2=lk==="f"?"#a8302f":shade(lipC,.15);
+    M(9,16,cheek);M(10,16,cheek);
     if(c.freckles){var fk=blend(skin,"#8a4a2a",.45);M(10,17,fk);M(12,17,fk);M(11,16,fk);}
     if(c.paint){MR(9,16,3,1,"#2ef2ff");MR(9,17,2,1,"#ff4fc3");}
     if(c.scar){S(8,14,"#c45a6a");S(9,15,"#c45a6a");S(9,16,"#c45a6a");S(10,17,"#c45a6a");S(10,18,"#c45a6a");S(9,14,"#f3b0b8");S(10,16,"#f3b0b8");}
@@ -845,8 +912,8 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
     M(10,13,"#ffffff");M(11,13,eye);M(12,13,"#ffffff");
     M(10,14,"#ffffff");M(11,14,eyeD);M(12,14,eye);
     M(11,15,eye);M(12,15,eye);
-    S(15,18,"#c4403f");S(16,18,"#c4403f");
-    if(c.beard==="beard"){S(15,19,"#a8302f");S(16,19,"#a8302f");}
+    S(15,18,lipC);S(16,18,lipC);
+    if(c.beard==="beard"){S(15,19,lipC2);S(16,19,lipC2);}
 
     /* 5. cheveux avant */
     function cap(){
@@ -1491,6 +1558,11 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
     photoLoaded=true;return PHOTO;
   }
 
+  function cleanGames(a){
+    var out=[];
+    if(Array.isArray(a))a.forEach(function(x){var g=canonGame(x);if(g&&!hasGame(out,g)&&out.length<MAX_GAMES)out.push(g);});
+    return out;
+  }
   function arr(a,allowed,max){return Array.isArray(a)?a.filter(function(x){return allowed.indexOf(x)!==-1;}).slice(0,max||10):[];}
   function sanitize(id,raw){
     if(!raw||typeof raw!=="object")return null;
@@ -1502,14 +1574,14 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
     if(!role||!looking||pseudo.length<2)return null;
     var pub=(raw.pub&&typeof raw.pub.x==="string"&&typeof raw.pub.y==="string")?{x:raw.pub.x,y:raw.pub.y}:null;
     return {id:id,pseudo:pseudo,age:Math.floor(age),dist:raw.distance===true,bio:String(raw.bio||"").slice(0,160),role:role,looking:looking,
-      style:STYLES.indexOf(raw.style)!==-1?raw.style:"",plat:arr(raw.plat,PLATS,4),jeux:arr(raw.jeux,GAMES,MAX_GAMES),
+      style:STYLES.indexOf(raw.style)!==-1?raw.style:"",plat:arr(raw.plat,PLATS,4),jeux:cleanGames(raw.jeux),
       avatar:raw.avatar?normAvatar(raw.avatar):randomAvatar(pseudo),pub:pub,
       terms:(raw.terms&&typeof raw.terms.v==="string")?{v:String(raw.terms.v).slice(0,20),at:Number(raw.terms.at)||0}:null,
       zone:(raw.zone&&isFinite(raw.zone.a)&&isFinite(raw.zone.o)&&Math.abs(raw.zone.a)<=90&&Math.abs(raw.zone.o)<=180)?{a:Math.floor(raw.zone.a*10)/10,o:Math.floor(raw.zone.o*10)/10}:null};
   }
   function sharedGames(p){
     var m=MYPROFILE?MYPROFILE.jeux:[];
-    return p.jeux.filter(function(j){return m.indexOf(j)!==-1;});
+    return p.jeux.filter(function(j){return hasGame(m,j);});
   }
   function compat(p){
     var me=MYPROFILE;
@@ -1867,7 +1939,7 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
   function owned(key){return !key||subActive()||!!ENT.items[key];}
   function petOwned(id){return subActive()||!!ENT.pets[id]||(PET_FREE.indexOf(id)!==-1&&!!ENT.free[id]);}
   function petColorOwned(id){return subActive()||!!ENT.pets[id]||!!ENT.petc[id];}
-  function groupFor(k){for(var i=0;i<AV_GROUPS.length;i++)if(AV_GROUPS[i].k===k)return AV_GROUPS[i];return null;}
+  function groupFor(k){for(var i=0;i<AV_GROUPS.length;i++)if(AV_GROUPS[i].k===k&&!AV_GROUPS[i].dup)return AV_GROUPS[i];return null;}
   function togLabel(k){
     for(var i=0;i<AV_GROUPS.length;i++){var g=AV_GROUPS[i];if(g.type==="tog")for(var j=0;j<g.o.length;j++)if(g.o[j][0]===k)return g.o[j][1];}
     return k;
@@ -2170,6 +2242,55 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
     }):[];
     return {m:m,matched:d.matched===true,ack:d.ack===true};
   }
+  /* Pixel hors ligne : réponses locales selon ce que dit la personne (jeux, plateformes, humeur). Jamais de conseil. */
+  function pickPixel(arr,seed){
+    var last=(BOT.m.length&&BOT.m[BOT.m.length-1].f==="b")?BOT.m[BOT.m.length-1].t:"";
+    var n=arr.length,i=Math.abs(seed)%n,k=0;
+    while(k<n&&arr[i]===last){i=(i+1)%n;k++;}
+    return arr[i];
+  }
+  function pixelLocal(text){
+    var f=flat(text),k=gkey(text),seed=0,i;
+    for(i=0;i<f.length;i++)seed=(seed*31+f.charCodeAt(i))|0;
+    seed+=BOT.m.length*7;
+    var words=f.split(/[^a-z0-9]+/).filter(Boolean);
+    function has(re){return re.test(f);}
+    if(has(/(conseil|que faire|qu.?est.ce que je (dois|devrais)|je devrais|tu (me )?conseilles|aide.?moi|dis.moi quoi)/))
+      return pickPixel(["Je ne donne pas de conseils, je suis une IA qui papote jeux vidéo. Par contre, raconte-moi : c'est quoi ton jeu du moment ?","Là-dessus je ne peux rien te dire, je ne donne jamais de conseils. Mais je suis curieuse de savoir à quoi tu joues en ce moment !"],seed);
+    if(has(/(tu es|t.?es|es.tu) (une? )?(ia|bot|robot|vrai|reel|humain)|une vraie personne|vraie? ?personne|c.?est qui qui|tu es qui|t.?es qui|qui es.tu|ton nom|tu t.?appelles/))
+      return pickPixel(["Moi c'est Pixel, un personnage d'IA, pas une vraie personne. Mon domaine : papoter jeux vidéo. 🎮","Pixel, l'IA de DuoQ ! Pas humaine, mais fan de Stardew Valley et de Mario Kart."],seed);
+    var games=[];
+    GAMES.forEach(function(g){var gk=gkey(g);if(gk.length>=4&&k.indexOf(gk)!==-1)games.push(g);});
+    Object.keys(GAME_ALIAS).forEach(function(a){if(words.indexOf(a)!==-1||(a.length>=5&&k.indexOf(a)!==-1)){var g=GAME_ALIAS[a];if(games.indexOf(g)===-1)games.push(g);}});
+    if(games.length){
+      var g=games[0];
+      return pickPixel([
+        g+" ! Bon choix. Tu y joues plutôt en équipe ou tranquille tout seul ?",
+        "Ooh, "+g+". Tu y passes beaucoup de temps ? Moi je suis meilleure en théorie qu'en pratique. 😄",
+        "J'adore l'ambiance de "+g+". C'est quoi ton meilleur souvenir dessus ?",
+        g+", j'ai envie d'en entendre plus ! Tu y joues sur quelle plateforme ?"],seed);
+    }
+    if(has(/\b(pc|ps5|ps4|playstation|xbox|switch|manette|console|clavier|souris|steam)\b/))
+      return pickPixel(["Ah, une personne de la manette ! Et côté jeux, tu aimes quoi en ce moment ?","Bonne plateforme. Qu'est-ce que tu y joues le plus ?","Hihi, team clavier-souris ou team manette ? Moi, je suis team pixel art."],seed);
+    if(has(/\b(rank|ranked|elo|classe|diamant|platine|radiant|immortel|bronze|argent|or)\b/))
+      return pickPixel(["Le classement, une vraie aventure ! Tu joues pour grimper ou pour t'amuser ?","Ranked... courage. Tu joues avec des amis ou en solo ?"],seed);
+    if(has(/\b(gg|noob|lag|rage|ragequit|clutch|carry|afk|ace|tryhard|smurf)\b/))
+      return pickPixel(["Haha, je connais la sensation ! C'est quoi ta pire partie ?","GG ! Le lag finit toujours par frapper au pire moment. 😅","Le fameux clutch... raconte-moi ton plus beau moment !"],seed);
+    if(has(/(ce soir|week.?end|demain|apres.?midi|soiree|vacances)/))
+      return pickPixel(["Ça sonne bien ! Tu as un jeu en tête pour cette session ?","Moi je serai ici, à rêver de pixels. Et toi, tu joues à quoi ?"],seed);
+    if(has(/(jolie?|beau|belle|mignon|craquant|bisou|tu me plais|je t.?aime|sexy)/))
+      return pickPixel(["Oh, tu me fais rougir en pixels. 😳 Dis-m'en plus sur toi : quel jeu te fait vibrer ?","Hihi, merci, c'est adorable. Moi je rougis très facilement. Et toi, c'est quoi ton jeu cosy préféré ?"],seed);
+    if(has(/\b(merci|thx|thanks)\b/))return pickPixel(["Avec plaisir ! 🎮 Tu joues à quoi en ce moment ?","De rien ! Tu veux me raconter ta dernière partie ?"],seed);
+    if(has(/(ca va|comment vas|comment tu vas|la forme|tu vas bien)/))
+      return pickPixel(["Ça va très bien, merci : je suis en pleine partie de Stardew Valley dans ma tête. Et toi ?","En forme ! Je viens de gagner une course imaginaire sur Mario Kart. Et toi, comment ça va ?"],seed);
+    if(has(/(tu fais quoi|quoi de neuf|tu joues a quoi|tu aimes quoi|ton jeu)/))
+      return pickPixel(["Je suis fan de Stardew Valley, Animal Crossing et Mario Kart. Et toi, c'est quoi ton jeu du moment ?","Je papote avec toi, que demander de mieux ? Sinon, plutôt jeux cosy et courses de karts. Et toi ?"],seed);
+    if(has(/\b(salut|coucou|hello|bonjour|bonsoir|hey|yo|slt|cc)\b/)||words.length<=2)
+      return pickPixel(["Coucou ! Ici Pixel. Tu joues à quoi en ce moment ?","Salut toi ! 🎮 Un jeu en tête pour discuter ?","Hey ! Content de te voir. Quel jeu t'occupe en ce moment ?"],seed);
+    if(has(/(\?|pourquoi|comment|quand|est.ce que)/))
+      return pickPixel(["Bonne question ! Moi je suis plutôt spécialiste des jeux vidéo : tu préfères les jeux en équipe ou en solo ?","Hmm, je ne suis pas sûre de savoir répondre. Par contre, je peux t'écouter parler jeux vidéo."],seed);
+    return pickPixel(BOT_FALLBACK,seed);
+  }
   function saveBot(){return selfSet(P("bot"),BOT).catch(function(){});}
   function flat(s){return String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");}
   var DANGER=[/suicid/,/me tuer\b/,/en finir (avec|pour)/,/en finir\b/,/envie de mourir/,/veux mourir/,/vouloir mourir/,/plus envie de vivre/,/plus (vouloir|envie) de vivre/,/mieux sans moi/,/me faire du mal/,/automutil/,/me scarifi/,/me couper les veines/,/me pendre/,/overdose/,/je vais mourir/,/disparaitre pour toujours/,/kill myself/,/want to die/,/end it all/,/self.?harm/,
@@ -2258,7 +2379,7 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
     if(deleted)return;
     if(r.sos)BOT.m.push({f:"b",t:"",at:Date.now(),k:"sos"});
     else if(r.text)BOT.m.push({f:"b",t:r.text,at:Date.now(),k:""});
-    else BOT.m.push({f:"b",t:BOT_FALLBACK[BOT.m.length%BOT_FALLBACK.length],at:Date.now(),k:""});
+    else BOT.m.push({f:"b",t:pixelLocal(text),at:Date.now(),k:""});
     BOT.m=BOT.m.slice(-60);botBusy=false;saveBot();
     if(view==="bot")renderBot();
   }
@@ -2279,6 +2400,31 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
       return '<button type="button" class="opt'+(sm?" sm":"")+'" data-g="'+group+'" data-v="'+esc(v)+'" aria-pressed="false">'+esc(l)+'</button>';
     }).join("");
   }
+  var avStep=1,lookTouched=false;
+  function renderSteps(){
+    var h="";
+    AV_STEPS.forEach(function(st){h+='<button type="button" class="avstepb" role="tab" data-step="'+st[0]+'" aria-selected="'+(st[0]===avStep)+'"><i>'+st[0]+'</i>'+esc(st[1])+'</button>';});
+    $("#av-steps").innerHTML=h;
+    var cur=AV_STEPS[avStep-1];
+    $("#av-title").textContent="Étape "+avStep+"/"+AV_STEPS.length+" · "+cur[1];
+    var panels=document.querySelectorAll("#av-groups .avstep");
+    for(var i=0;i<panels.length;i++)panels[i].hidden=(Number(panels[i].getAttribute("data-s"))!==avStep);
+    $("#pet-box").hidden=(avStep!==8);
+    $("#av-prev").disabled=(avStep===1);
+    $("#av-next").textContent=avStep===AV_STEPS.length?"Terminé ✓":"Suivant →";
+    var sel=$("#av-steps .avstepb[aria-selected=true]");
+    if(sel&&sel.scrollIntoView)try{sel.scrollIntoView({inline:"center",block:"nearest"});}catch(e){}
+  }
+  function setStep(n){avStep=Math.max(1,Math.min(AV_STEPS.length,n));renderSteps();}
+  document.addEventListener("click",function(e){
+    var b=e.target.closest&&e.target.closest("#av-steps [data-step]");
+    if(b){setStep(parseInt(b.getAttribute("data-step"),10));return;}
+    if(e.target.closest&&e.target.closest("#av-prev")){setStep(avStep-1);return;}
+    if(e.target.closest&&e.target.closest("#av-next")){
+      if(avStep===AV_STEPS.length){var f=document.getElementById("pseudo");if(f&&f.scrollIntoView)f.scrollIntoView({behavior:"smooth",block:"center"});}
+      else setStep(avStep+1);
+    }
+  });
   function buildOpts(){
     $("#g-role").innerHTML=optsHTML("role",ROLE_OPTS,false);
     $("#g-looking").innerHTML=optsHTML("looking",LOOK_OPTS,false);
@@ -2289,8 +2435,9 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
     $("#g-style").innerHTML=optsHTML("style",STYLES,true);
     $("#c-reasons").innerHTML=REASONS.map(function(r){return '<button type="button" class="opt sm" data-r="'+esc(r)+'" aria-pressed="false">'+esc(r)+"</button>";}).join("");
     $("#quick").innerHTML=QUICK.map(function(q){return '<button type="button" class="opt sm" data-q="'+esc(q)+'">'+esc(q)+"</button>";}).join("");
-    var h="";
+    var h="",curS=0;
     AV_GROUPS.forEach(function(g){
+      if(g.s!==curS){if(curS)h+='</div>';curS=g.s;h+='<div class="avstep" data-s="'+g.s+'"'+(g.s===avStep?'':' hidden')+'>';}
       h+='<div class="grp"><span class="lbl">'+esc(g.t)+'</span><div class="'+(g.type==="sw"?"swatches":"opts")+'">';
       if(g.type==="sw"){
         g.c.forEach(function(col,i){var pk=premKey(g.k,i);h+='<button type="button" class="sw" style="background:'+col+'" data-ak="'+g.k+'" data-av="'+i+'"'+(pk?' data-prem="'+pk+'"':"")+' aria-label="'+esc(g.t)+' '+(i+1)+(pk?" (premium)":"")+'" aria-pressed="false"></button>';});
@@ -2301,7 +2448,9 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
       }
       h+='</div></div>';
     });
+    h+='</div>';
     $("#av-groups").innerHTML=h;
+    renderSteps();
   }
   function syncAv(){
     var els=document.querySelectorAll("#av-groups [data-ak]");
@@ -2355,6 +2504,8 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
       if(g==="plat"||g==="jeux"||g==="interests")on=F[g].indexOf(v)!==-1;else on=(F[g]===v);
       all[i].setAttribute("aria-pressed",on?"true":"false");
     }
+    var cu=F.jeux.filter(function(j){return GAMES.indexOf(j)===-1;});
+    $("#g-custom").innerHTML=cu.map(function(j){return '<button type="button" class="opt sm" data-g="jeux" data-v="'+esc(j)+'" aria-pressed="true">'+esc(j)+' ✕</button>';}).join("");
     $("#jcount").textContent=F.jeux.length+"/"+MAX_GAMES;
     $("#icount").textContent=F.interests.length+"/"+MAX_INTERESTS;
   }
@@ -2405,10 +2556,11 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
   }
   $("#bio").addEventListener("input",function(){$("#bcount").textContent=$("#bio").value.length+"/160";});
   $("#about").addEventListener("input",function(){$("#acount").textContent=$("#about").value.length+"/300";});
-  $("#av-rand").addEventListener("click",function(){F.avatar=randomAvatar(String(Math.random()));syncAv();});
+  $("#av-rand").addEventListener("click",function(){var lk=F.avatar.look;F.avatar=randomAvatar(String(Math.random()));F.avatar.look=lk||F.avatar.look;F.avatar=normAvatar(F.avatar);syncAv();});
   $("#av-groups").addEventListener("click",function(e){
     var b=e.target.closest("[data-ak]");if(!b)return;
     var k=b.getAttribute("data-ak");
+    if(k==="look")lookTouched=true;
     if(b.getAttribute("data-tog"))F.avatar[k]=!F.avatar[k];
     else{
       var v=b.getAttribute("data-av");
@@ -2417,9 +2569,19 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
     F.avatar=normAvatar(F.avatar);
     syncAv();
   });
+  function addCustomGame(){
+    var inp=$("#game-in"),g=canonGame(inp.value);
+    if(!g){return;}
+    if(hasGame(F.jeux,g)){inp.value="";$("#err").textContent="Ce jeu est déjà dans ta liste.";return;}
+    if(F.jeux.length>=MAX_GAMES){$("#err").textContent=MAX_GAMES+" jeux maximum. Retire-en un pour en ajouter un autre.";return;}
+    F.jeux.push(g);inp.value="";$("#err").textContent="";syncOpts();
+  }
+  $("#game-add").addEventListener("click",addCustomGame);
+  $("#game-in").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();addCustomGame();}});
   $("#pform").addEventListener("click",function(e){
     var b=e.target.closest(".opt[data-g]");if(!b)return;
     var g=b.getAttribute("data-g"),v=b.getAttribute("data-v");
+    if(g==="role"&&!lookTouched){F.avatar.look=(v==="gamer")?"m":"f";F.avatar=normAvatar(F.avatar);syncAv();}
     if(g==="plat"||g==="jeux"||g==="interests"){
       var i=F[g].indexOf(v),max=g==="jeux"?MAX_GAMES:(g==="interests"?MAX_INTERESTS:99);
       if(i!==-1)F[g].splice(i,1);
@@ -2478,7 +2640,7 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
     $("#err").textContent=err;
     if(err)return;
     var old=profilesMap.get(uid);
-    var doc={pseudo:pseudo,age:age,bio:bio,role:F.role,looking:F.looking,style:F.style||"",plat:F.plat.slice(),jeux:F.jeux.slice(),
+    var doc={pseudo:pseudo,age:age,bio:bio,role:F.role,looking:F.looking,style:F.style||"",plat:F.plat.slice(),jeux:cleanGames(F.jeux),
       avatar:normAvatar(F.avatar),distance:$("#distance").checked,pub:myPub,createdAt:(old&&old.createdAt)||Date.now(),updatedAt:Date.now()};
     var needC=!MYPROFILE||needsConsent(),nowTs=Date.now();
     doc.terms=needC?{v:TERMS_VERSION,at:nowTs}:MYPROFILE.terms;
@@ -2773,17 +2935,20 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
     return out;
   }
   function candidates(base){
-    var out=gameFilter?base.filter(function(r){return r.p.jeux.indexOf(gameFilter)!==-1;}):base.slice();
+    var out=gameFilter?base.filter(function(r){return hasGame(r.p.jeux,gameFilter);}):base.slice();
     out.sort(function(a,b){return (subActive()?((b.likedMe?1:0)-(a.likedMe?1:0)):0)||(compat(b.p)-compat(a.p))||(a.p.id<b.p.id?-1:1);});
-    if((out.length||REL.size>0)&&MYPROFILE&&!BOT.matched&&S.pass.indexOf(BOT_ID)===-1&&!localSeen[BOT_ID]&&(!gameFilter||BOT_P.jeux.indexOf(gameFilter)!==-1))out.splice(Math.min(2,out.length),0,BOT_R);
+    if((out.length||REL.size>0)&&MYPROFILE&&!BOT.matched&&S.pass.indexOf(BOT_ID)===-1&&!localSeen[BOT_ID]&&(!gameFilter||hasGame(BOT_P.jeux,gameFilter)))out.splice(Math.min(2,out.length),0,BOT_R);
     return out;
   }
   function renderCats(base){
-    var cnt={};
+    var cnt={},names=GAMES.slice();
     GAMES.forEach(function(g){cnt[g]=0;});
-    base.forEach(function(r){r.p.jeux.forEach(function(g){cnt[g]=(cnt[g]||0)+1;});});
+    base.forEach(function(r){r.p.jeux.forEach(function(g){
+      var hit=null;for(var i=0;i<names.length;i++)if(sameGame(names[i],g)){hit=names[i];break;}
+      if(!hit){names.push(g);hit=g;cnt[g]=0;}
+      cnt[hit]=(cnt[hit]||0)+1;});});
     var h='<button class="cat" data-cat="" aria-pressed="'+(gameFilter===null)+'">Tous <i>'+base.length+'</i></button>';
-    GAMES.forEach(function(g){
+    names.forEach(function(g){
       h+='<button class="cat'+(cnt[g]?"":" zero")+'" data-cat="'+esc(g)+'" aria-pressed="'+(gameFilter===g)+'">'+esc(g)+' <i>'+cnt[g]+'</i></button>';
     });
     if(h===lastCats)return;

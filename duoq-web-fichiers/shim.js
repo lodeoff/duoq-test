@@ -15,45 +15,77 @@ const rid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) 
 /* ---------- connexion (écran minimal, dans le thème) ---------- */
 let sessionP = null;
 function loginScreen() {
-  return new Promise((resolve) => {
-    const box = document.createElement("div");
-    box.style.cssText = "position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:20px;background:#08051a;color:#f6f2ff;font-family:Figtree,system-ui,sans-serif";
-    box.innerHTML =
-      '<form style="width:min(380px,100%);display:grid;gap:12px">' +
-      '<h1 style="font-family:\'Chakra Petch\',sans-serif;margin:0;font-size:2rem;color:#ff4fc3;text-shadow:0 0 14px #ff4fc3">DuoQ</h1>' +
-      '<p id="lm" style="margin:0;color:#b9b0e6">Connecte-toi pour retrouver tes matchs.</p>' +
-      '<input id="le" type="email" autocomplete="email" placeholder="E-mail" required style="padding:14px;border-radius:10px;border:1px solid #6a58c8;background:#150f3a;color:#fff;font-size:16px">' +
-      '<input id="lp" type="password" autocomplete="current-password" minlength="8" placeholder="Mot de passe (8 caractères min.)" required style="padding:14px;border-radius:10px;border:1px solid #6a58c8;background:#150f3a;color:#fff;font-size:16px">' +
-      '<button id="lb" type="submit" style="padding:14px;border-radius:10px;border:0;background:#2ef2ff;color:#031f26;font-weight:700;font-size:16px">Se connecter</button>' +
-      '<button id="ls" type="button" style="padding:12px;border-radius:10px;border:1px solid #6a58c8;background:transparent;color:#f6f2ff;font-size:15px">Créer un compte</button>' +
-      '<button id="lr" type="button" style="padding:8px;border:0;background:transparent;color:#b9b0e6;font-size:14px;text-decoration:underline">Mot de passe oublié</button>' +
-      '</form>';
-    document.body.appendChild(box);
-    const $ = (s) => box.querySelector(s), msg = (t) => ($("#lm").textContent = t);
-    const done = (s) => { box.remove(); resolve(s); };
-    const creds = () => ({ email: $("#le").value.trim(), password: $("#lp").value });
-    $("form").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const { data, error } = await sb.auth.signInWithPassword(creds());
-      if (error) msg("E-mail ou mot de passe incorrect."); else done(data.session);
-    });
-    $("#ls").addEventListener("click", async () => {
-      const c = creds();
-      if (!c.email || c.password.length < 8) { msg("Indique un e-mail et un mot de passe de 8 caractères minimum."); return; }
-      const { data, error } = await sb.auth.signUp(c);
-      if (error) msg("Création impossible : " + error.message);
-      else if (data.session) done(data.session);
-      else msg("Compte créé. Clique sur le lien reçu par e-mail, puis reviens te connecter.");
-    });
-    $("#lr").addEventListener("click", async () => {
-      const em = $("#le").value.trim();
-      if (!em) { msg("Écris d'abord ton e-mail."); return; }
-      await sb.auth.resetPasswordForEmail(em);
-      msg("Si ce compte existe, un e-mail de réinitialisation vient d'être envoyé.");
-    });
-  });
-}
-function session() {
+      return new Promise((resolve) => {
+        let mode = "signup", busy = false;
+        try { if (localStorage.getItem("duoq_seen") === "1") mode = "login"; } catch (e) {}
+        const box = document.createElement("div");
+        box.style.cssText = "position:fixed;inset:0;z-index:99999;overflow:auto;display:grid;place-items:center;padding:20px;background:#08051a;color:#f6f2ff;font-family:Figtree,system-ui,sans-serif";
+        const inp = "padding:15px;border-radius:12px;border:1.5px solid #6a58c8;background:#150f3a;color:#fff;font-size:16px;width:100%;box-sizing:border-box";
+        box.innerHTML =
+          '<form style="width:min(400px,100%);display:grid;gap:12px" novalidate>' +
+          '<h1 style="font-family:\'Chakra Petch\',sans-serif;margin:0;font-size:2.2rem;color:#ff4fc3;text-shadow:0 0 14px #ff4fc3">DuoQ</h1>' +
+          '<div style="display:flex;gap:8px"><button type="button" id="tl" style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:15px;border:1.5px solid #6a58c8"></button>' +
+          '<button type="button" id="ts" style="flex:1;padding:12px;border-radius:10px;font-weight:700;font-size:15px;border:1.5px solid #6a58c8"></button></div>' +
+          '<p id="lh" style="margin:0;color:#b9b0e6"></p>' +
+          '<input id="le" type="email" autocomplete="email" placeholder="E-mail" style="' + inp + '">' +
+          '<input id="lp" type="password" placeholder="Mot de passe (8 caractères minimum)" style="' + inp + '">' +
+          '<input id="lp2" type="password" autocomplete="new-password" placeholder="Répète le mot de passe" style="' + inp + '">' +
+          '<p id="lm" role="alert" style="margin:0;min-height:1.3em;color:#ffb3e0;font-weight:600"></p>' +
+          '<button id="lb" type="submit" style="padding:15px;border-radius:12px;border:0;background:#2ef2ff;color:#031f26;font-weight:800;font-size:17px"></button>' +
+          '<button id="lr" type="button" style="padding:8px;border:0;background:transparent;color:#b9b0e6;font-size:14px;text-decoration:underline">Mot de passe oublié</button>' +
+          '</form>';
+        document.body.appendChild(box);
+        const $ = (q) => box.querySelector(q);
+        const msg = (t, ok) => { $("#lm").textContent = t || ""; $("#lm").style.color = ok ? "#9dffd0" : "#ffb3e0"; };
+        const done = (sess) => { try { localStorage.setItem("duoq_seen", "1"); } catch (e) {} box.remove(); resolve(sess); };
+        function paint() {
+          const su = mode === "signup";
+          [["#tl", !su], ["#ts", su]].forEach(([q, on]) => { const b = $(q); b.style.background = on ? "#2ef2ff" : "transparent"; b.style.color = on ? "#031f26" : "#f6f2ff"; });
+          $("#tl").textContent = "J'ai déjà un compte"; $("#ts").textContent = "Créer un compte";
+          $("#lh").textContent = su ? "Première fois sur DuoQ ? Crée ton compte en 10 secondes." : "Content de te revoir ! Connecte-toi pour retrouver tes matchs.";
+          $("#lp2").style.display = su ? "" : "none";
+          $("#lp").autocomplete = su ? "new-password" : "current-password";
+          $("#lb").textContent = su ? "Créer mon compte" : "Me connecter";
+          $("#lr").style.display = su ? "none" : "";
+          msg("");
+        }
+        const setBusy = (b) => { busy = b; $("#lb").disabled = b; $("#lb").style.opacity = b ? ".6" : "1"; if (b) $("#lb").textContent = "Patiente…"; };
+        $("#tl").addEventListener("click", () => { if (!busy) { mode = "login"; paint(); } });
+        $("#ts").addEventListener("click", () => { if (!busy) { mode = "signup"; paint(); } });
+        $("form").addEventListener("submit", async (e) => {
+          e.preventDefault();
+          if (busy) return;
+          const email = $("#le").value.trim(), password = $("#lp").value;
+          if (!/^\S+@\S+\.\S+$/.test(email)) { msg("Écris une adresse e-mail valide."); return; }
+          if (password.length < 8) { msg("Le mot de passe doit faire 8 caractères minimum."); return; }
+          if (mode === "signup") {
+            if (password !== $("#lp2").value) { msg("Les deux mots de passe ne sont pas identiques."); return; }
+            setBusy(true);
+            const { data, error } = await sb.auth.signUp({ email, password });
+            setBusy(false); paint();
+            if (error) {
+              if (/already|registered/i.test(error.message)) { mode = "login"; paint(); msg("Cette adresse a déjà un compte : connecte-toi avec ton mot de passe."); }
+              else msg("Création impossible : " + error.message);
+            } else if (data.session) done(data.session);
+            else msg("Compte créé. Clique sur le lien reçu par e-mail, puis reviens te connecter.", true);
+          } else {
+            setBusy(true);
+            const { data, error } = await sb.auth.signInWithPassword({ email, password });
+            setBusy(false); paint();
+            if (error) msg(/confirm/i.test(error.message) ? "Confirme d'abord ton e-mail (lien reçu par mail)." : "E-mail ou mot de passe incorrect. Première visite ? Touche « Créer un compte ».");
+            else done(data.session);
+          }
+        });
+        $("#lr").addEventListener("click", async () => {
+          const em = $("#le").value.trim();
+          if (!em) { msg("Écris d'abord ton e-mail."); return; }
+          await sb.auth.resetPasswordForEmail(em);
+          msg("Si ce compte existe, un e-mail de réinitialisation vient d'être envoyé.", true);
+        });
+        paint();
+      });
+    }
+    function session() {
   if (!sessionP) {
     sessionP = sb.auth.getSession().then(({ data }) => data.session || loginScreen());
   }
