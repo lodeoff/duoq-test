@@ -381,13 +381,17 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
         <div class="group" id="plus-box" hidden></div>
         <form id="pform" novalidate>
           <div class="aved">
-            <span class="lbl"><span>Mon avatar</span><button type="button" class="link" id="av-rand" style="padding:0">Au hasard</button></span>
+            <span class="lbl"><span>Mon avatar</span></span>
             <div class="prevwrap"><span class="av prev full" id="av-prev"></span><button type="button" class="lk-sum" id="av-lock" data-lkopen hidden></button></div>
-            <div id="av-steps" class="avsteps" role="tablist" aria-label="Étapes de création"></div>
-            <h3 class="avtitle" id="av-title"></h3>
-            <div id="av-groups" class="avgroups"></div>
-            <div class="grp" id="pet-box" hidden></div>
-            <div class="avnav"><button type="button" class="btn ghost" id="av-prev">← Précédent</button><button type="button" class="btn primary" id="av-next">Suivant →</button></div>
+            <button type="button" class="btn ghost block" id="av-toggle" aria-expanded="false" aria-controls="av-edit">Modifier mon avatar</button>
+            <div id="av-edit" hidden>
+              <div class="lbl" style="justify-content:flex-end"><button type="button" class="link" id="av-rand" style="padding:0">Au hasard</button></div>
+              <div id="av-steps" class="avsteps" role="tablist" aria-label="Étapes de création"></div>
+              <h3 class="avtitle" id="av-title"></h3>
+              <div id="av-groups" class="avgroups"></div>
+              <div class="grp" id="pet-box" hidden></div>
+              <div class="avnav"><button type="button" class="btn ghost" id="av-back">← Précédent</button><button type="button" class="btn primary" id="av-next">Suivant →</button></div>
+            </div>
           </div>
 
           <div class="field">
@@ -399,13 +403,6 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
             <input type="number" id="age" min="18" max="99" inputmode="numeric" placeholder="18 ans minimum">
           </div>
           <div class="field">
-            <label class="lbl" for="bio"><span>Présentation</span><span id="bcount">0/160</span></label>
-            <textarea id="bio" maxlength="160" rows="3" placeholder="Une phrase sur toi, visible par tout le monde"></textarea>
-          </div>
-          <div class="field"><span class="lbl">Je suis</span><div class="opts" id="g-role"></div></div>
-          <div class="field"><span class="lbl">Je cherche</span><div class="opts" id="g-looking"></div></div>
-          <label class="check"><input type="checkbox" id="distance"><span>D'accord pour une relation à distance. Coché = visible tout de suite sur ton profil. Décoché = pas d'accord.</span></label>
-          <div class="field">
             <span class="lbl"><span>Ma zone approximative</span><span>facultatif</span></span>
             <select id="zone-city" aria-label="Ville proche"></select>
             <div class="photo-btns">
@@ -414,6 +411,15 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
             </div>
             <p class="note" id="zone-note">Ta position exacte n'est jamais enregistrée : elle est arrondie à une zone d'environ 10 km. Les autres voient seulement une distance approximative.</p>
           </div>
+          <div class="field">
+            <label class="lbl" for="bio"><span>Présentation</span><span id="bcount">0/160</span></label>
+            <textarea id="bio" maxlength="160" rows="3" placeholder="Une phrase sur toi, visible par tout le monde"></textarea>
+          </div>
+          <h2 class="sec">Ce que je cherche</h2>
+          <div class="field"><span class="lbl">Je suis</span><div class="opts" id="g-role"></div></div>
+          <div class="field"><span class="lbl">Je cherche</span><div class="opts" id="g-looking"></div></div>
+          <label class="check"><input type="checkbox" id="distance"><span>D'accord pour une relation à distance. Coché = visible tout de suite sur ton profil. Décoché = pas d'accord.</span></label>
+          <h2 class="sec">Mes jeux</h2>
           <div class="field"><span class="lbl"><span>Mes jeux</span><span id="jcount">0/8</span></span><div id="g-jeux" style="display:grid;gap:8px"></div>
             <p class="sublbl">Ton jeu n'est pas dans la liste ? Écris-le :</p>
             <div class="addgame"><input type="text" id="game-in" maxlength="30" placeholder="Ex. : Hollow Knight" autocomplete="off" enterkeyhint="done"><button type="button" class="btn ghost" id="game-add">Ajouter</button></div>
@@ -696,6 +702,7 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
       shoeColor:idx("shoeColor",SHOES.length),pose:pick("pose"),look:pick("look"),bg:idx("bg",BGS.length),
       pet:pd?pd.id:"none",petVar:pd?idx("petVar",pd.v.length):0};
     TOGS.forEach(function(t){o[t]=a[t]===true;});
+    if(o.head!=="none")o.headset=false;
     return o;
   }
   function rng(seed){
@@ -1235,8 +1242,8 @@ function buildAvHD(c){
   else E(32,27.8,15.6,14.8,oSkin);
   /* joues */
   if(lk!=="m"){var oCh=O(cheek,{fl:1});ME(22.4,35,2.9,1.7,oCh);}
-  if(c.freckles){var oFk=O(blend(skin,"#8a4a2a",.5),{fl:1});[[21,33],[23,34],[25,33],[22,35],[24,36]].forEach(function(p){MP(p[0],p[1],oFk);});}
-  if(c.paint){var oP1=O("#2ef2ff",{fl:1}),oP2=O("#ff4fc3",{fl:1});R(19,34,5,1,oP1);R(40,34,5,1,oP1);R(20,36,3,1,oP2);R(41,36,3,1,oP2);}
+  if(c.freckles){var oFk=O(blend(skin,"#6b2e14",.85),{fl:1});[[20,36],[22,35],[24,36],[26,35],[21,38],[23,37],[25,38],[27,37],[29,34],[28,36]].forEach(function(p){MP(p[0],p[1],oFk);});}
+  if(c.paint){var oP1=O("#2ef2ff",{fl:1}),oP2=O("#ff4fc3",{fl:1}),oP3=O("#fff36b",{fl:1});R(18,36,8,2,oP1);R(38,36,8,2,oP1);R(19,38,6,1,oP2);R(39,38,6,1,oP2);R(21,39,2,1,oP3);R(41,39,2,1,oP3);}
   /* barbe */
   var bt2=c.beard,bcol=bt2==="stubble"?blend(skin,hair,.38):hair;
   if(bt2==="stubble"||bt2==="beard"){
@@ -1330,9 +1337,9 @@ function buildAvHD(c){
   }else{
     R(29,38,6,1,oMouth);put(28,37,oMouth);put(35,37,oMouth);
   }
-  if(c.scar){var oSc=O("#c45a6a",{fl:1}),oSc2=O("#f3b0b8",{fl:1});[[22,22],[23,24],[24,26],[25,28]].forEach(function(p){put(p[0],p[1],oSc);put(p[0]+1,p[1],oSc2);});}
-  if(c.mole)put(39,36,O("#3b2a20",{fl:1}));
-  if(c.plaster){R(27,32,11,2,O("#f3d2a8",{fl:1}));R(31,32,3,2,O("#e0b88a",{fl:1}));}
+  if(c.scar){var oSc=O("#b3202f",{fl:1}),oSc2=O("#ffb3bb",{fl:1});[[19,22],[20,24],[21,26],[22,28],[23,30],[24,32],[25,34],[26,36]].forEach(function(p){put(p[0],p[1],oSc);put(p[0]+1,p[1],oSc);put(p[0]+2,p[1],oSc2);});}
+  if(c.mole){var oMl=O("#2a140c",{fl:1});R(38,35,2,2,oMl);put(38,35,O("#6a4636",{fl:1}));}
+  if(c.plaster){var oPb=O("#9c6f45",{fl:1}),oPf=O("#f8e6c8",{fl:1}),oPp=O("#dcb487",{fl:1});R(28,34,8,4,oPb);R(29,35,6,2,oPf);R(31,35,2,2,oPp);}
 
   /* =============== 5. cheveux avant =============== */
   function bangs(yb,tooth,per,ph,asym,side){
@@ -1463,10 +1470,10 @@ function buildAvHD(c){
     var oVz=O("#14101f",{ln:1});PLY([14,25,18,24,46,24,50,25,50,36,46,38,18,38,14,36],oVz);
     PLY([16,26,48,26,48,35,16,35],O("#2ef2ff",{fl:1}));R(18,27,8,1,O("#d6fcff",{fl:1}));R(34,32,12,1,O("#7ff6ff",{fl:1}));
   }else if(gt==="pixel"){
-    var oPx=O("#0b0b10",{fl:1});R(13,27,38,4,oPx);
-    [[17,31],[19,31],[21,31],[23,31],[25,31],[27,31]].forEach(function(p){put(p[0],p[1],oPx);put(p[0]+1,p[1],oPx);});
-    R(15,31,2,3,oPx);R(30,31,4,3,oPx);R(47,31,2,3,oPx);R(15,34,6,1,oPx);R(43,34,6,1,oPx);
-    var oW=O("#e8e8ee",{fl:1});R(17,27,5,1,oW);R(35,27,5,1,oW);
+    var oPx=O("#0b0b10",{fl:1}),oW=O("#f2f2f8",{fl:1});
+    R(12,27,40,3,oPx);R(17,30,13,3,oPx);R(34,30,13,3,oPx);R(18,33,11,1,oPx);R(35,33,11,1,oPx);R(19,34,9,1,oPx);R(36,34,9,1,oPx);
+    R(12,30,2,2,oPx);R(50,30,2,2,oPx);
+    R(19,30,4,1,oW);R(18,31,1,1,oW);R(36,30,4,1,oW);R(35,31,1,1,oW);R(21,28,2,1,oW);R(38,28,2,1,oW);
   }
   if(c.earrings){var oEr=O("#ffd23f",{fl:1});MP(15,35,oEr);MP(15,36,oEr);MP(15,37,oEr);}
   if(c.headset){
@@ -1535,6 +1542,7 @@ function buildAvHD(c){
 }
 
 /* ===== /AV2 ===== */
+
 
 
 
@@ -3047,18 +3055,23 @@ function pc_paint(art,v,id){
     var panels=document.querySelectorAll("#av-groups .avstep");
     for(var i=0;i<panels.length;i++)panels[i].hidden=(Number(panels[i].getAttribute("data-s"))!==avStep);
     $("#pet-box").hidden=(avStep!==8);
-    $("#av-prev").disabled=(avStep===1);
+    $("#av-back").disabled=(avStep===1);
     $("#av-next").textContent=avStep===AV_STEPS.length?"Terminé ✓":"Suivant →";
     var sel=$("#av-steps .avstepb[aria-selected=true]");
     if(sel&&sel.scrollIntoView)try{sel.scrollIntoView({inline:"center",block:"nearest"});}catch(e){}
   }
+  function setAvEdit(o){
+    var bx=$("#av-edit"),tg=$("#av-toggle");if(!bx||!tg)return;
+    bx.hidden=!o;tg.setAttribute("aria-expanded",o?"true":"false");tg.textContent=o?"Terminer la modification":"Modifier mon avatar";
+  }
+  document.addEventListener("click",function(e){if(e.target.closest&&e.target.closest("#av-toggle")){var bx=$("#av-edit");setAvEdit(bx.hidden);if(!bx.hidden)renderSteps();}});
   function setStep(n){avStep=Math.max(1,Math.min(AV_STEPS.length,n));renderSteps();}
   document.addEventListener("click",function(e){
     var b=e.target.closest&&e.target.closest("#av-steps [data-step]");
     if(b){setStep(parseInt(b.getAttribute("data-step"),10));return;}
-    if(e.target.closest&&e.target.closest("#av-prev")){setStep(avStep-1);return;}
+    if(e.target.closest&&e.target.closest("#av-back")){setStep(avStep-1);return;}
     if(e.target.closest&&e.target.closest("#av-next")){
-      if(avStep===AV_STEPS.length){var f=document.getElementById("pseudo");if(f&&f.scrollIntoView)f.scrollIntoView({behavior:"smooth",block:"center"});}
+      if(avStep===AV_STEPS.length){setAvEdit(false);var f=document.getElementById("pseudo");if(f&&f.scrollIntoView)f.scrollIntoView({behavior:"smooth",block:"center"});}
       else setStep(avStep+1);
     }
   });
@@ -3170,6 +3183,7 @@ function pc_paint(art,v,id){
       $("#danger-box").hidden=true;
     }
     $("#ville").value=PRIV.ville;$("#about").value=PRIV.about;$("#discord").value=PRIV.discord;
+    setAvEdit(!me);
     var needC=!me||needsConsent();
     $("#consent-box").hidden=!needC;
     ["#c-age","#c-cgu","#c-priv","#c-sens"].forEach(function(q){$(q).checked=false;});
@@ -3198,10 +3212,13 @@ function pc_paint(art,v,id){
     var b=e.target.closest("[data-ak]");if(!b)return;
     var k=b.getAttribute("data-ak");
     if(k==="look")lookTouched=true;
-    if(b.getAttribute("data-tog"))F.avatar[k]=!F.avatar[k];
-    else{
+    if(b.getAttribute("data-tog")){
+      F.avatar[k]=!F.avatar[k];
+      if(k==="headset"&&F.avatar.headset&&F.avatar.head&&F.avatar.head!=="none"){F.avatar.head="none";toast("Casque et couvre-chef ne se portent pas ensemble : couvre-chef retiré.");}
+    }else{
       var v=b.getAttribute("data-av");
       F.avatar[k]=(AV_ENUMS[k]?v:parseInt(v,10));
+      if(k==="head"&&v!=="none"&&F.avatar.headset){F.avatar.headset=false;toast("Casque et couvre-chef ne se portent pas ensemble : casque retiré.");}
     }
     F.avatar=normAvatar(F.avatar);
     syncAv();
