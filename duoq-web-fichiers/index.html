@@ -69,7 +69,7 @@ h2.sec{font-family:var(--f-display);font-size:20px;margin:28px 0 8px;color:var(-
 .aved .prev.haspet{aspect-ratio:1/1}
 .aved .prev.haspet>svg{position:absolute;left:0;top:0;width:67%;height:100%}
 .aved .prev.haspet .pet{width:38%;right:1%;bottom:2%}
-.pet{position:absolute;right:2%;bottom:3%;width:40%;aspect-ratio:28/24;pointer-events:none}
+.pet{position:absolute;right:2%;bottom:3%;width:42%;aspect-ratio:88/72;pointer-events:none}
 .pet svg{width:100%;height:100%}
 .av svg{display:block;width:100%;height:100%}
 
@@ -305,7 +305,7 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
 .sw.locked::after{content:"";position:absolute;inset:0;margin:auto;width:16px;height:16px;border-radius:50%;background:rgba(8,5,26,.8) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffd0ee' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/10px no-repeat}
 .petgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .petchip{display:grid;gap:2px;justify-items:center;align-content:start;text-align:center;padding:8px 4px 7px;background:rgba(155,107,255,.1);border:1.5px solid var(--line);border-radius:14px;min-width:0;transition:box-shadow .2s,border-color .2s}
-.petchip .mini{width:100%;aspect-ratio:28/22;display:grid;place-items:center;font-family:var(--f-display);font-size:22px;color:var(--muted)}
+.petchip .mini{width:100%;aspect-ratio:88/70;display:grid;place-items:center;font-family:var(--f-display);font-size:22px;color:var(--muted)}
 .petchip .mini svg{width:100%;height:100%;display:block}
 .petchip b{font-family:var(--f-display);font-size:14px}
 .petchip small{font-family:var(--f-mono);font-size:10px;color:var(--muted);line-height:1.2}
@@ -1044,80 +1044,519 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
     }
     return out;
   }
-  /* ---------- rendu HD : lissage des diagonales (Scale2x x2) + ombrage doux, rendu en image ---------- */
-  var HD_PASSES=2;
-  function scale2x(g,w,h){
-    var W=w*2,out=new Array(W*h*2),x,y;
-    function at(xx,yy,d){return (xx<0||yy<0||xx>=w||yy>=h)?d:g[yy*w+xx];}
-    for(y=0;y<h;y++)for(x=0;x<w;x++){
-      var P=g[y*w+x],A=at(x,y-1,P),B=at(x+1,y,P),C=at(x-1,y,P),D=at(x,y+1,P);
-      var o1=P,o2=P,o3=P,o4=P;
-      if(A!==D&&C!==B){
-        if(C===A)o1=A;
-        if(A===B)o2=B;
-        if(D===C)o3=C;
-        if(B===D)o4=D;
-      }
-      out[(y*2)*W+x*2]=o1;out[(y*2)*W+x*2+1]=o2;out[(y*2+1)*W+x*2]=o3;out[(y*2+1)*W+x*2+1]=o4;
-    }
-    return out;
-  }
-  var shMemo={};
-  function shadeCol(col,t){
-    var k=col+"|"+t,v=shMemo[k];if(v)return v;
-    if(col.charAt(0)!=="#"||col.length!==7||col===OUTL||col===LASH)return (shMemo[k]=col);
-    return (shMemo[k]=(t>0?tint(col,t):shade(col,-t)));
-  }
-  /* volume : bord haut-gauche éclairci, bord bas-droite assombri (sur ~1 px d'origine) */
-  function relight(g,w,h,band){
-    var o=g.slice(),x,y,c,k;
-    function diff(xx,yy,c0){if(xx<0||yy<0||xx>=w||yy>=h)return true;var n=g[yy*w+xx];return n!==c0&&(n===null||n===OUTL||n===undefined||(typeof n==="string"&&n.charAt(0)!=="#"));}
-    for(y=0;y<h;y++)for(x=0;x<w;x++){
-      c=g[y*w+x];if(!c||c===OUTL||c===LASH||c.charAt(0)!=="#")continue;
-      var hi=false,lo=false;
-      for(k=1;k<=band;k++){
-        if(diff(x-k,y-k,c)||diff(x,y-k,c)||diff(x-k,y,c))hi=true;
-        if(diff(x+k,y+k,c)||diff(x,y+k,c)||diff(x+k,y,c))lo=true;
-      }
-      if(hi&&!lo)o[y*w+x]=shadeCol(c,.16);
-      else if(lo&&!hi)o[y*w+x]=shadeCol(c,-.16);
-    }
-    return o;
-  }
-  function hdImage(grid,w,h,passes,light){
-    var g=grid,i;
-    for(i=0;i<passes;i++){g=scale2x(g,w,h);w*=2;h*=2;}
-    if(light)g=relight(g,w,h,3);
-    var cv=document.createElement("canvas");cv.width=w;cv.height=h;
-    var ctx=cv.getContext("2d"),x,y,x2,col;
-    for(y=0;y<h;y++){
-      x=0;
-      while(x<w){
-        col=g[y*w+x];
-        if(!col){x++;continue;}
-        x2=x;while(x2+1<w&&g[y*w+x2+1]===col)x2++;
-        ctx.fillStyle=col;ctx.fillRect(x,y,x2-x+1,1);
-        x=x2+1;
-      }
-    }
-    return cv.toDataURL("image/png");
-  }
   var avMemo=new Map(),avHdMemo=new Map();
+/* ===== AV2 : avatar HD ===== */
+/* ===== AV2 : avatar HD 64x96, formes vectorielles + ombrage automatique ===== */
+var AW2=64,AH2=96;
+function buildAvHD(c){
+  var N=AW2*AH2,ob=new Int16Array(N),sg=new Int16Array(N),zz=new Int32Array(N),fx=new Array(N).fill(null),objs=[null],zc=0,x,y,i,j;
+  function O(col,o){o=o||{};o.col=col;objs.push(o);return objs.length-1;}
+  function put(px,py,id){var x=Math.floor(px),y=Math.floor(py);if(x<0||y<0||x>=AW2||y>=AH2)return;ob[y*AW2+x]=id;zz[y*AW2+x]=zc;fx[y*AW2+x]=null;if(!id)sg[y*AW2+x]=0;else if(!objs[id].fl)sg[y*AW2+x]=id;}
+  function putc(px,py,col){var x=Math.floor(px),y=Math.floor(py);if(x<0||y<0||x>=AW2||y>=AH2||!ob[y*AW2+x])return;fx[y*AW2+x]=col;}
+  function E(cx,cy,rx,ry,id){zc++;for(var y=Math.floor(cy-ry);y<=Math.ceil(cy+ry);y++)for(var x=Math.floor(cx-rx);x<=Math.ceil(cx+rx);x++){var dx=(x+.5-cx)/rx,dy=(y+.5-cy)/ry;if(dx*dx+dy*dy<=1)put(x,y,id);}}
+  function R(x0,y0,w,h,id){zc++;for(var j=0;j<h;j++)for(var i=0;i<w;i++)put(x0+i,y0+j,id);}
+  function PLY(p,id){
+    zc++;var n=p.length/2,mn=1e9,mx=-1e9,k;
+    for(k=0;k<n;k++){mn=Math.min(mn,p[2*k+1]);mx=Math.max(mx,p[2*k+1]);}
+    for(var y=Math.floor(mn);y<=Math.ceil(mx);y++){
+      var yc=y+.5,xs=[];
+      for(k=0;k<n;k++){
+        var ax=p[2*k],ay=p[2*k+1],bx=p[2*((k+1)%n)],by=p[2*((k+1)%n)+1];
+        if((ay<=yc&&by>yc)||(by<=yc&&ay>yc))xs.push(ax+(yc-ay)/(by-ay)*(bx-ax));
+      }
+      xs.sort(function(a,b){return a-b;});
+      for(k=0;k+1<xs.length;k+=2)for(var x=Math.ceil(xs[k]-.5);x<=Math.floor(xs[k+1]-.5);x++)put(x,y,id);
+    }
+  }
+  function CAP(x0,y0,x1,y1,r0,r1,id){
+    zc++;var dx=x1-x0,dy=y1-y0,l2=dx*dx+dy*dy||1,R2=Math.max(r0,r1)+1;
+    for(var y=Math.floor(Math.min(y0,y1)-R2);y<=Math.ceil(Math.max(y0,y1)+R2);y++)for(var x=Math.floor(Math.min(x0,x1)-R2);x<=Math.ceil(Math.max(x0,x1)+R2);x++){
+      var t=Math.max(0,Math.min(1,((x+.5-x0)*dx+(y+.5-y0)*dy)/l2)),px=x0+t*dx,py=y0+t*dy,r=r0+(r1-r0)*t;
+      if((x+.5-px)*(x+.5-px)+(y+.5-py)*(y+.5-py)<=r*r)put(x,y,id);
+    }
+  }
+  function mir(p){var q=[];for(var k=0;k<p.length;k+=2){q.push(64-p[k],p[k+1]);}return q;}
+  function MPLY(p,id){PLY(p,id);PLY(mir(p),id);}
+  function ME(cx,cy,rx,ry,id){E(cx,cy,rx,ry,id);E(64-cx,cy,rx,ry,id);}
+  function MR(x0,y0,w,h,id){R(x0,y0,w,h,id);R(64-x0-w,y0,w,h,id);}
+  function MCAP(x0,y0,x1,y1,r0,r1,id){CAP(x0,y0,x1,y1,r0,r1,id);CAP(64-x0,y0,64-x1,y1,r0,r1,id);}
+  function MP(px,py,id){put(px,py,id);put(63-Math.floor(px),py,id);}
+  function MPC(px,py,col){putc(px,py,col);putc(63-Math.floor(px),py,col);}
+  function at(x,y){return (x<0||y<0||x>=AW2||y>=AH2)?0:ob[y*AW2+x];}
+  function sgAt(x,y){return (x<0||y<0||x>=AW2||y>=AH2)?0:sg[y*AW2+x];}
+
+  function ly(pts,x){
+    if(x<=pts[0][0])return pts[0][1];
+    for(var q=1;q<pts.length;q++)if(x<=pts[q][0]){var a=pts[q-1],b=pts[q];return a[1]+(b[1]-a[1])*(x-a[0])/(b[0]-a[0]);}
+    return pts[pts.length-1][1];
+  }
+  /* calotte de cheveux : ellipse vol=[cx,cy,rx,ry] ; la peau du visage reste visible sous la frange fr */
+  function cap(vol,fr,id){
+    zc++;
+    for(var yy=Math.floor(vol[1]-vol[3]);yy<=Math.ceil(vol[1]+vol[3]);yy++)for(var xx=Math.floor(vol[0]-vol[2]);xx<=Math.ceil(vol[0]+vol[2]);xx++){
+      var dx=(xx+.5-vol[0])/vol[2],dy=(yy+.5-vol[1])/vol[3];
+      if(dx*dx+dy*dy>1)continue;
+      if(sg[yy*AW2+xx]===oSkin&&yy+.5>=ly(fr,xx+.5))continue;
+      put(xx,yy,id);
+    }
+  }
+  /* ---------- couleurs ---------- */
+  var skin=SKIN[c.skin],skinD=shade(skin,.18),skinL=tint(skin,.22);
+  var hair=HAIR[c.hairColor],hairD=shade(hair,.3),hairL=tint(hair,.34);
+  var eye=EYES[c.eye],eyeD=shade(eye,.5),eyeL=tint(eye,.45);
+  var acc=ACC[c.headColor];
+  var top=TOPS[c.topColor],bot=BOTS[c.botColor],shoe=SHOES[c.shoeColor];
+  var lk=c.look||"n",veil=c.head==="veil";
+  var cheek=lk==="f"?blend(skin,"#ff6f91",.5):(lk==="n"?blend(skin,"#ff6f91",.2):skin);
+  var lipC=lk==="f"?"#c4403f":(lk==="n"?blend(skin,"#b8504d",.55):blend(skin,"#9a5a50",.5));
+
+  /* ---------- objets (z croissant par ordre de dessin) ---------- */
+  var oSkin=O(skin,{ln:0}),oSkinB=O(skin);                 /* peau visage / peau corps */
+  var oHair=O(hair,{ln:1,gloss:1,big:1}),oHairB=O(hair,{gloss:1,big:1});
+  var oAcc=O(acc,{ln:1}),oAcc2=O(acc);
+  var oTop=O(top,{ln:1}),oTop2=O(top,{ln:1}),oBot=O(bot,{ln:1}),oBot2=O(bot,{ln:1}),oShoe=O(shoe,{ln:1}),oSock=O("#efecff",{ln:1});
+  var oBelt=O("#e0453a",{ln:1}),oGold=O("#ffd23f",{fl:1});
+  var oGlove=O(c.gloves?acc:skin,{ln:1});
+  var oFlat=O("#ffffff",{fl:1}),oEyeW=O("#ffffff",{fl:1}),oIris=O(eye,{fl:1}),oLash=O(LASH,{fl:1}),oPupil=O("#150d22",{fl:1}),oMouth=O(lipC,{fl:1}),oBrow=O(hairD,{fl:1});
+  var oMisc=O("#ffffff",{fl:1});
+
+  /* =============== 0. derrière tout : ailes, cape =============== */
+  if(c.wings){
+    var wl=[20,44,8,24,-2,26,2,38,-3,48,5,52,0,64,14,58,20,52];
+    MPLY(wl,O(tint(acc,.5),{ln:1}));
+    MPLY([20,46,10,32,5,35,8,44,5,52,12,52,20,50],O(tint(acc,.2),{ln:0}));
+  }
+  if(c.cape){
+    var cp=O(acc,{ln:1,big:1});
+    PLY([21,46,43,46,55,90,9,90],cp);
+    for(x=16;x<=48;x+=5){}
+  }
+  /* cheveux arrière */
+  var hs=c.hair;
+  if(!veil){
+    if(hs==="long")PLY([14,18,50,18,53,60,48,67,16,67,11,60],oHairB);
+    if(hs==="bob")PLY([13,20,51,20,52,44,47,48,17,48,12,44],oHairB);
+    if(hs==="mullet")PLY([14,22,50,22,52,50,45,56,19,56,12,50],oHairB);
+    if(hs==="dreads"){MCAP(14,24,11,60,3.6,3.2,oHairB);MCAP(18,30,17,66,3.4,3,oHairB);MCAP(22,34,22,62,3,2.8,oHairB);}
+    if(hs==="twin"){MCAP(14,22,9,52,4,3.4,oHairB);}
+    if(hs==="pony"){CAP(46,16,56,26,4.5,4,oHairB);CAP(56,26,55,50,4,2.5,oHairB);}
+    if(hs==="braid"){}
+    if(hs==="curly"||hs==="afro"){}
+  }else{
+    PLY([14,10,50,10,56,60,8,60],O(acc,{ln:1,big:1}));
+  }
+
+  /* =============== 1. jambes, chaussures =============== */
+  var legY0=62,legY1=85;
+  MCAP(26,legY0,25.5,legY1,4.6,3.6,oSkinB);
+  /* chaussettes */
+  MCAP(25.5,80,25.5,86,3.8,3.6,oSock);
+  /* chaussures : semelle + dessus */
+  var shoeP=[19,91,19,88,23,85.5,29,85.5,31,89,31,93,19,93];
+  MPLY(shoeP,oShoe);
+  var oSole=O("#f4f1ec",{fl:1}),oLace=O(tint(shoe,.55),{fl:1});MR(19,92,12,1,oSole);MR(21,87,6,1,oLace);MR(22,89,5,1,oLace);
+
+  /* =============== 2. bas =============== */
+  var bt=c.bottom;
+  if(bt==="pants"){
+    MCAP(26.5,62,25.5,84,5.8,4.5,oBot);PLY([21,60,43,60,43,68,21,68],oBot);
+  }else if(bt==="skirt"){
+    PLY([22,60,42,60,46,74,18,74],oBot);
+    for(x=21;x<=43;x+=2)put(x,74,0);
+  }else if(bt==="longskirt"){
+    PLY([22,60,42,60,47,86,17,86],oBot);
+  }else if(bt==="cargo"){
+    MCAP(26.5,62,25.5,80,5.9,4.8,oBot);PLY([21,60,43,60,43,68,21,68],oBot);
+    MR(19,68,5,5,oBot2);
+  }else{
+    MCAP(26.5,62,26,70,5.6,5,oBot);PLY([21,60,43,60,43,66,21,66],oBot);
+  }
+  R(21,60,22,3,oBelt);R(29,60,6,3,oGold);
+
+  /* =============== 3. corps (haut) et bras =============== */
+  var tp=c.top,sleeveTee=(tp==="tee"||tp==="stripes"||tp==="armor"),sleeveFull=(tp==="hoodie"||tp==="jacket");
+  /* cou */
+  R(28,40,8,8,oSkinB);
+  /* bras : os = [épaule, coude, main] pour gauche (écran) et droite */
+  var A,pose=c.pose;
+  if(pose==="victory"){A={L:[[22,50],[13,44],[9,29]],R:[[42,50],[51,44],[55,29]]};}
+  else if(pose==="relax"){A={L:[[22,50],[18,58],[17,67]],R:[[42,50],[46,58],[47,67]]};}
+  else{A={L:[[22,50],[16,57],[14,63]],R:[[42,50],[48,55],[52,43]]};}
+  function arm(a,sleeveMode){
+    var s=a[0],e=a[1],h=a[2];
+    CAP(s[0],s[1],e[0],e[1],3.6,3.1,oSkinB);CAP(e[0],e[1],h[0],h[1],3.1,2.7,oSkinB);
+    var m=c.gloves?oGlove:oSkinB;
+    E(h[0],h[1],3.8,3.7,c.gloves?oGlove:oSkinB);
+    var kn=O(c.gloves?shade(acc,.45):shade(skin,.35),{fl:1});put(h[0]-1,h[1]+1,kn);put(h[0],h[1]+1,kn);put(h[0]+1,h[1]+1,kn);
+    if(c.gloves){CAP(e[0]*.3+h[0]*.7,e[1]*.3+h[1]*.7,h[0],h[1],3.3,3.2,oGlove);}
+    if(sleeveMode==="tee")CAP(s[0],s[1],s[0]*.6+e[0]*.4,s[1]*.6+e[1]*.4,4.5,4.2,oTop2);
+    if(sleeveMode==="full"){CAP(s[0],s[1],e[0],e[1],4.3,3.9,oTop2);CAP(e[0],e[1],e[0]*.2+h[0]*.8,e[1]*.2+h[1]*.8,3.9,3.5,oTop2);}
+  }
+  var sm=sleeveTee?"tee":(sleeveFull?"full":"");
+  /* torse */
+  var torso=[22,48,26,46,38,46,42,48,43,52,42,57,41,61,23,61,22,57,21,52];
+  if(tp==="hoodie"){torso=[21,48,26,46,38,46,43,48,44,52,43,57,42,61,22,61,21,57,20,52];}
+  var emb=lum(top)>.62?shade(top,.45):"#ffd23f",oEmb=O(emb,{fl:1});
+  if(tp==="crop"){
+    PLY(torso.slice(0),oSkinB);
+    PLY([22,48,26,46,38,46,42,48,43,52,42,55,22,55,21,52],oTop);
+    put(31,58,O(skinD,{fl:1}));put(32,58,O(skinD,{fl:1}));
+  }else if(tp==="tank"){
+    PLY(torso.slice(0),oSkinB);
+    PLY([24,47,28,47,30,50,34,50,36,47,40,47,41,52,41,57,40,61,24,61,23,57,23,52],oTop);
+  }else{
+    PLY(torso,oTop);
+  }
+  arm(A.L,sm);arm(A.R,sm);
+  /* col et motifs */
+  if(tp==="hoodie"){
+    PLY([24,45,40,45,38,49,26,49],oTop2);
+    PLY([26,55,38,55,41,60,23,60],oTop2);
+    put(29,50,oEmb);put(29,52,oEmb);put(35,50,oEmb);put(35,52,oEmb);
+  }
+  if(tp==="stripes"){var stc=O(lum(top)>.5?"#222733":"#e8e8ee",{fl:1});[50,54,58].forEach(function(yy){for(var xx=22;xx<=42;xx++)if(sg[yy*AW2+xx]===oTop)put(xx,yy,stc),put(xx,yy+1,stc);});}
+  if(tp==="jacket"){R(29,47,6,14,O("#e8e8ee",{ln:1}));R(31,48,2,12,O("#b9b4e8",{fl:1}));PLY([26,45,29,45,29,50,24,49],oTop2);PLY([38,45,35,45,35,50,40,49],oTop2);}
+  if(tp==="armor"){
+    ME(22.5,49.5,5.5,4.2,O(tint(top,.3),{ln:1}));
+    PLY([24,50,40,50,38,60,26,60],O(tint(top,.18),{ln:1}));
+    E(32,55,3.2,3.2,O("#2ef2ff",{fl:1}));E(32,55,1.6,1.6,O("#d6fcff",{fl:1}));
+  }
+  if(tp==="tee"||tp==="crop"||tp==="tank"||tp==="stripes"){PLY([28,53,31.5,53,32,55,32.5,53,36,53,33,58.5,31,58.5],oEmb);}
+  /* encolure */
+  E(32,46.8,4.6,2.4,oSkinB);
+  if(c.scarf){var oSc=O(acc,{ln:1,big:1});PLY([22,45,42,45,43,51,21,51],oSc);CAP(38,50,40,66,3.2,2.6,oSc);}
+  if(c.necklace){var oNk=O("#ffd23f",{fl:1}),oGem=O("#ff4fc3",{fl:1});for(var t=0;t<=1;t+=.04){var nx=25+14*t,ny=48+Math.sin(Math.PI*t)*6.5;put(nx,ny,oNk);}E(32,55.2,1.8,2,oGem);put(31,54,O("#ffd0ee",{fl:1}));}
+
+  /* =============== 4. tête =============== */
+  if(!veil)ME(16.3,30,2.4,3.4,oSkin);
+  var faceId=oSkin;
+  if(c.face==="oval")E(32,28,13.6,15.6,oSkin);
+  else if(c.face==="square")PLY([17,17,19.5,13.5,44.5,13.5,47,17,47,34,43.5,41.5,38,44.5,26,44.5,20.5,41.5,17,34],oSkin);
+  else E(32,27.8,15.6,14.8,oSkin);
+  /* joues */
+  if(lk!=="m"){var oCh=O(cheek,{fl:1});ME(22.4,35,2.9,1.7,oCh);}
+  if(c.freckles){var oFk=O(blend(skin,"#8a4a2a",.5),{fl:1});[[21,33],[23,34],[25,33],[22,35],[24,36]].forEach(function(p){MP(p[0],p[1],oFk);});}
+  if(c.paint){var oP1=O("#2ef2ff",{fl:1}),oP2=O("#ff4fc3",{fl:1});R(19,34,5,1,oP1);R(40,34,5,1,oP1);R(20,36,3,1,oP2);R(41,36,3,1,oP2);}
+  /* barbe */
+  var bt2=c.beard,bcol=bt2==="stubble"?blend(skin,hair,.38):hair;
+  if(bt2==="stubble"||bt2==="beard"){
+    var oBr=O(bcol,{big:1,gloss:bt2==="beard"?1:0});zc++;
+    for(y=33;y<=46;y++)for(x=15;x<=49;x++){
+      if(sg[y*AW2+x]!==oSkin)continue;
+      var dx2=Math.abs(x+.5-32);
+      var lim=bt2==="beard"?(34+Math.max(0,(9-dx2))*.9):(36+Math.max(0,(8-dx2))*.5);
+      if(y+.5<lim)continue;
+      if(bt2==="stubble"&&((x+y)%2))continue;
+      put(x,y,oBr);
+    }
+    if(bt2==="beard"){E(32,38.6,4.8,2.2,oSkin);}
+  }
+  if(bt2==="mous"||bt2==="handle"){var oM=O(hair,{big:1,gloss:1});PLY([26,36,32,35,38,36,40,37.5,36,38,32,37,28,38,24,37.5],oM);}
+  if(bt2==="goatee"){var oG=O(hair,{big:1,gloss:1});PLY([27,36,32,35,37,36,36,38,32,37.5,28,38],oG);E(32,42,3.6,3,oG);}
+  if(bt2==="handle"){var oHn=O(hair,{big:1,gloss:1});MCAP(25,37,22,43,1.8,1.4,oHn);MCAP(22,43,23,47,1.4,1.2,oHn);}
+  /* yeux */
+  function eyeAt(cx,cy,m){
+    /* m = +1 gauche écran, -1 droit : miroir */
+    function X(v){return m>0?v:64-v;}
+    var wx=cx,wy=cy;
+    /* blanc */
+    zc++;
+    for(var yy=Math.floor(wy-4.6);yy<=Math.ceil(wy+4.6);yy++)for(var xx=Math.floor(wx-4);xx<=Math.ceil(wx+4);xx++){
+      var dx=(xx+.5-wx)/3.7,dy=(yy+.5-wy)/4.3,d=dx*dx+dy*dy;
+      if(d<=1)put(m>0?xx:63-xx+0,yy,oEyeW);
+    }
+  }
+  var EX=24.2,EY=30.6;
+  function eyePix(){
+    var xx,yy,dx,dy;
+    /* on dessine l'œil gauche puis on le miroite */
+    var cells=[];
+    for(yy=24;yy<=37;yy++)for(xx=18;xx<=31;xx++){
+      dx=(xx+.5-EX)/3.8;dy=(yy+.5-EY)/4.5;
+      var d=dx*dx+dy*dy;
+      if(d<=1){
+        var t='w';
+        var ix=(xx+.5-(EX+.5))/2.7,iy=(yy+.5-(EY+.9))/3.4;
+        if(ix*ix+iy*iy<=1){t='i';var px=(xx+.5-(EX+.5))/1.35,py=(yy+.5-(EY+1.2))/1.9;if(px*px+py*py<=1)t='p';else if(iy>.25)t='l';else if(iy<-.45)t='d';}
+        cells.push([xx,yy,t]);
+      }
+    }
+    return cells;
+  }
+  zc++;
+  eyePix().forEach(function(q){
+    var id=oEyeW,col=null;
+    if(q[2]==='i'||q[2]==='l'||q[2]==='d'){id=oIris;}
+    if(q[2]==='p')id=oPupil;
+    MP(q[0],q[1],id);
+    if(q[2]==='l')MPC(q[0],q[1],eyeL);
+    else if(q[2]==='d')MPC(q[0],q[1],eyeD);
+  });
+  /* reflets */
+  MP(24,29,oEyeW);MP(24,30,oEyeW);MP(27,33,oEyeW);
+  /* cils / paupière haute */
+  var lashThick=(lk==="f")?2:(lk==="n"?2:2);
+  eyePix().forEach(function(q){
+    var xx=q[0],yy=q[1];
+    /* bord supérieur de l'œil : 1 à 2 cases */
+    var up1=!eyePix.has?0:0;
+  });
+  (function(){
+    var set={};eyePix().forEach(function(q){set[q[0]+","+q[1]]=1;});
+    var bX=[];
+    for(var xx=18;xx<=31;xx++){
+      var ys=[];for(var yy=24;yy<=37;yy++)if(set[xx+","+yy])ys.push(yy);
+      if(!ys.length)continue;
+      var y0=ys[0];
+      MP(xx,y0-1,oLash);MP(xx,y0,oLash);
+      if(lk==="f"&&xx<=20){MP(xx-1,y0,oLash);}
+    }
+    /* petit trait sous l'œil, contour fin */
+    if(lk==="f"){MP(19,29,oLash);MP(18,28,oLash);}
+  })();
+  /* sourcils */
+  var oB=O(blend(hair,"#000000",.35),{fl:1});
+  if(lk==="m"){MPLY2([19,21.5,24,20.5,29,22,29,24,24,23,19,24.2]);}
+  else if(lk==="f"){MPLY2([19.5,22.5,24,20.5,28.5,21.8,28.5,23,24,22,19.5,23.6]);}
+  else{MPLY2([19.5,22,24,20.5,28.8,21.8,28.8,23.3,24,22.2,19.5,23.8]);}
+  function MPLY2(p){var a=p.slice();zc++;PLY(a,oB);PLY(mir(a),oB);}
+  /* nez, bouche */
+  var oNose=O(skinD,{fl:1});MP(31,35,oNose);MP(31,36,oNose);
+  var oNoseL=O(skinL,{fl:1});MP(31,33,oNoseL);
+  if(lk==="f"){
+    R(29,38,6,1,oMouth);R(30,39,4,1,oMouth);R(30,38,1,1,O(shade(lipC,.25),{fl:1}));R(33,38,1,1,O(shade(lipC,.25),{fl:1}));
+  }else if(lk==="n"){
+    R(29,38,6,1,oMouth);R(30,39,4,1,oMouth);
+  }else{
+    R(29,38,6,1,oMouth);put(28,37,oMouth);put(35,37,oMouth);
+  }
+  if(c.scar){var oSc=O("#c45a6a",{fl:1}),oSc2=O("#f3b0b8",{fl:1});[[22,22],[23,24],[24,26],[25,28]].forEach(function(p){put(p[0],p[1],oSc);put(p[0]+1,p[1],oSc2);});}
+  if(c.mole)put(39,36,O("#3b2a20",{fl:1}));
+  if(c.plaster){R(27,32,11,2,O("#f3d2a8",{fl:1}));R(31,32,3,2,O("#e0b88a",{fl:1}));}
+
+  /* =============== 5. cheveux avant =============== */
+  function bangs(yb,tooth,per,ph,asym,side){
+    var pts=[],xx;side=side===undefined?1.3:side;
+    for(xx=10;xx<=54;xx+=1){
+      var d=Math.abs(xx-32),sd=Math.max(0,Math.min(16,(d-13)*side*1.6));
+      var tri=Math.abs(((xx-ph)%per+per)%per/per*2-1);
+      var y2=yb+sd+tooth*tri+(asym&&xx<asym[0]?asym[1]:0);
+      pts.push([xx,y2]);
+    }
+    return pts;
+  }
+  var FR={
+    short:bangs(21.5,3.2,6,3,[34,1.2]),
+    long:bangs(22.5,2.2,8,5,[36,1.5]),
+    bob:bangs(25.2,.8,4,0,null,1.1),
+    mullet:bangs(22,2.6,6,1,[33,1]),
+    pony:bangs(21.5,3,6,2,[34,1]),
+    twin:bangs(24,1.2,5,0,null),
+    bun:bangs(22,2.5,6,3,null),
+    curly:bangs(22,3.5,5,0,null),
+    afro:bangs(21,3,5,2,null),
+    spiky:bangs(21,3.6,5,1,[33,1]),
+    braid:bangs(22.5,2.6,6,2,[34,1]),
+    emo:[[10,44],[14,40],[18,37],[24,36.5],[30,35],[31,29],[33,24],[44,24],[48,28],[52,40]],
+    spacebuns:bangs(23,1.6,5,0,null),
+    pompadour:bangs(19.5,2.6,6,2,[34,1]),
+    dreads:bangs(22,2.8,6,2,[34,1]),
+    default:bangs(22,2.8,6,2,null)
+  };
+  function front(){
+    var fr=FR[hs]||FR.default,vol=[32,21,17.6,16.2];
+    cap(vol,fr,oHair);
+  }
+  if(!veil&&hs!=="bald"){
+    if(hs==="buzz"){
+      var oBz=O(blend(hair,skin,.45),{gloss:0,big:1});
+      cap([32,22,16.2,12.8],[[12,22],[18,20],[26,18],[32,17],[38,18],[46,20],[52,22]],oBz);
+    }else if(hs==="mohawk"){
+      var oBz2=O(blend(hair,skin,.5),{big:1});
+      cap([32,22,16,12.5],[[12,22],[18,20],[26,18],[38,18],[46,20],[52,22]],oBz2);
+      PLY([28,18,26,4,29,-1,35,-1,38,4,36,18],oHair);
+    }else{
+      front();
+      if(hs==="spiky"){
+        var sp=[[16,16,13,6,22,12],[21,12,22,2,28,9],[27,9,32,-2,37,9],[36,9,42,1,43,12],[42,12,51,5,48,17]];
+        sp.forEach(function(t){PLY(t,oHair);});
+      }
+      if(hs==="bun")E(32,7,5.2,4.6,oHair);
+      if(hs==="spacebuns"){ME(18,9,5.2,4.8,oHair);}
+      if(hs==="pompadour"){PLY([14,21,14,12,20,4,30,-1,42,1,50,9,50,21,44,15,22,15],oHair);}
+      if(hs==="curly"){for(var a=0;a<12;a++){var an=Math.PI*(1.02+a*0.0835),bx=32+Math.cos(an)*18.3,by=21+Math.sin(an)*16.8;E(bx,by,3.4,3.4,oHair);}}
+      if(hs==="afro"){cap([32,17,23.5,19.5],FR.afro,oHair);}
+      if(hs==="emo"){MCAP(15,30,14,58,3.4,2.4,oHair);MCAP(49,30,50,52,3.2,2.4,oHair);}
+      if(hs==="pony"){MCAP(17,15,12,22,3,3,oAcc);}
+      if(hs==="twin"){ME(14,22,3,2,oAcc);}
+      if(hs==="braid"){
+        for(i=0;i<9;i++){E(18+(i%2?1:0),38+i*3.2,3,2.2,i%2?oHair:oHairB);}
+        E(19,66,2.4,2,oAcc);
+      }
+      if(hs==="long")MCAP(14,30,13,62,3.6,2.6,oHair);
+      if(hs==="bob")MCAP(14,30,14,46,3.8,3,oHair);
+      if(hs==="dreads"){MCAP(14,26,12,52,3.2,2.8,oHair);}
+    }
+  }
+  /* =============== 6. couvre-chef =============== */
+  var hd=c.head;
+  var oHat=O(acc,{ln:1,big:1}),oHatL=O(tint(acc,.3),{ln:1}),oHatD=O(shade(acc,.3),{ln:1});
+  if(hd==="beanie"){
+    E(32,15.5,17.8,10,oHat);R(14,19,36,5,oHatD);
+    for(x=18;x<=46;x+=4)for(y=6;y<=19;y++)if(sg[y*AW2+x]===oHat)put(x,y,oHatD);
+    E(32,5.5,4.6,4.4,oHatL);
+  }else if(hd==="cap"){
+    E(32,14,17.4,8.6,oHat);R(14,19,36,3,oHatD);
+    PLY([13,21,51,21,53,24,32,26.5,11,24],oHatL);
+    E(32,6.5,2,1.5,oHatD);
+  }else if(hd==="band"){
+    PLY([14,25,16,19,32,16.5,48,19,50,25,48,22,32,19.5,16,22],oHat);
+    E(47,21,3.2,3,oHat);CAP(47,22,53,30,2.2,1.6,oHat);CAP(46,22,50,32,2.2,1.6,oHatD);
+  }else if(hd==="catears"){
+    PLY([14,25,16,19,32,16.5,48,19,50,25,48,22,32,19.5,16,22],oHat);
+    MPLY([17,19,18,3,29,13],oHat);MPLY([20,15,20.5,7,26,13],O("#ffd0ee",{ln:0}));
+  }else if(hd==="bunny"){
+    PLY([14,25,16,19,32,16.5,48,19,50,25,48,22,32,19.5,16,22],oHat);
+    MCAP(16,22,10,46,4.8,4.2,oHat);MCAP(15,26,12,42,2,1.6,oHatL);
+  }else if(hd==="crown"){
+    var cg=O("#ffd23f",{ln:1,big:1});
+    PLY([19,15,19,5,24,10,28,3,32,9,36,3,40,10,45,5,45,15],cg);
+    R(19,13,26,3,O("#d9a000",{ln:1}));
+    E(32,9,1.6,1.6,O(acc,{fl:1}));MP(25,13,O("#ffd0ee",{fl:1}));MP(38,13,O("#ffd0ee",{fl:1}));
+  }else if(hd==="cowboy"){
+    E(32,16.5,28,5.2,oHat);PLY([22,16,23,3,28,5,32,3,36,5,41,3,42,16],oHat);R(22,13,20,2,oHatD);
+  }else if(hd==="wizard"){
+    E(32,17,25,4.6,oHat);PLY([20,16,30,0,34,0,44,16],oHat);R(21,13,22,3,oHatD);
+    put(31,8,O("#ffd23f",{fl:1}));put(32,9,O("#ffd23f",{fl:1}));put(30,12,O("#ffd23f",{fl:1}));
+  }else if(hd==="horns"){
+    var oHn2=O("#e8dcc2",{ln:1,big:1});
+    MCAP(20,14,15,5,3.2,1.2,oHn2);MCAP(15,5,18,-1,1.4,.6,oHn2);
+  }else if(veil){
+    var oVl=O(acc,{ln:1,big:1});zc++;
+    for(y=8;y<=46;y++)for(x=12;x<=52;x++){
+      var ex2=(x+.5-32)/12.8,ey2=(y+.5-29.5)/14.2;
+      var inE2=ex2*ex2+ey2*ey2<=1,inS=((x+.5-32)/19)*((x+.5-32)/19)+((y+.5-24)/17)*((y+.5-24)/17)<=1||(y>=24&&y<=44&&Math.abs(x+.5-32)<=18.5);
+      if(inS&&!inE2)put(x,y,oVl);
+    }
+  }
+  /* =============== 7. lunettes, boucles, casque =============== */
+  var gl="#1b1f2e",oGl=O(gl,{fl:1}),gt=c.glasses;
+  function ring(cx,cy,rx,ry,t,id){
+    for(var yy=Math.floor(cy-ry-1);yy<=Math.ceil(cy+ry+1);yy++)for(var xx=Math.floor(cx-rx-1);xx<=Math.ceil(cx+rx+1);xx++){
+      var dx=(xx+.5-cx)/rx,dy=(yy+.5-cy)/ry,d=dx*dx+dy*dy,ix=(xx+.5-cx)/(rx-t),iy=(yy+.5-cy)/(ry-t);
+      if(d<=1&&ix*ix+iy*iy>1)put(xx,yy,id);
+    }
+  }
+  function rring(x0,y0,w,h,t,id){for(var yy=y0;yy<y0+h;yy++)for(var xx=x0;xx<x0+w;xx++)if(yy<y0+t||yy>=y0+h-t||xx<x0+t||xx>=x0+w-t)put(xx,yy,id);}
+  if(gt==="round"){ring(24.2,30.8,6,5.8,1.2,oGl);ring(39.8,30.8,6,5.8,1.2,oGl);R(30,29,4,1,oGl);R(12,28,6,1,oGl);R(46,28,6,1,oGl);}
+  else if(gt==="square"||gt==="sun"){
+    rring(18,25,13,11,1,oGl);rring(33,25,13,11,1,oGl);R(31,28,2,1,oGl);R(13,27,5,1,oGl);R(46,27,5,1,oGl);
+    if(gt==="sun"){var oSn=O("#14101f",{fl:1}),oSg=O("#6a63a8",{fl:1});R(19,26,11,9,oSn);R(34,26,11,9,oSn);R(21,27,3,1,oSg);R(36,27,3,1,oSg);R(22,28,1,1,oSg);R(37,28,1,1,oSg);}
+  }else if(gt==="heart"){
+    var hp=O("#ff4fc3",{fl:1}),hl=O("#ffd0ee",{fl:1});
+    [[19,26],[34,26]].forEach(function(p){
+      PLY([p[0]+1,p[1]+2,p[0]+3,p[1],p[0]+6.5,p[1]+1.5,p[0]+7,p[1]+3,p[0]+10.5,p[1]+1.5,p[0]+13,p[1]+3,p[0]+12,p[1]+6.5,p[0]+7,p[1]+11,p[0]+2,p[1]+6.5],hp);
+      put(p[0]+3,p[1]+2,hl);put(p[0]+4,p[1]+2,hl);
+    });
+    R(31,28,2,1,hp);
+  }else if(gt==="visor"){
+    var oVz=O("#14101f",{ln:1});PLY([14,25,18,24,46,24,50,25,50,36,46,38,18,38,14,36],oVz);
+    PLY([16,26,48,26,48,35,16,35],O("#2ef2ff",{fl:1}));R(18,27,8,1,O("#d6fcff",{fl:1}));R(34,32,12,1,O("#7ff6ff",{fl:1}));
+  }else if(gt==="pixel"){
+    var oPx=O("#0b0b10",{fl:1});R(13,27,38,4,oPx);
+    [[17,31],[19,31],[21,31],[23,31],[25,31],[27,31]].forEach(function(p){put(p[0],p[1],oPx);put(p[0]+1,p[1],oPx);});
+    R(15,31,2,3,oPx);R(30,31,4,3,oPx);R(47,31,2,3,oPx);R(15,34,6,1,oPx);R(43,34,6,1,oPx);
+    var oW=O("#e8e8ee",{fl:1});R(17,27,5,1,oW);R(35,27,5,1,oW);
+  }
+  if(c.earrings){var oEr=O("#ffd23f",{fl:1});MP(15,35,oEr);MP(15,36,oEr);MP(15,37,oEr);}
+  if(c.headset){
+    var hs2="#242640",oHs=O(hs2,{ln:1}),oHc=O("#2ef2ff",{fl:1});
+    for(var an2=Math.PI;an2<=2*Math.PI+0.01;an2+=0.03){var hx2=32+Math.cos(an2)*19.5,hy2=24+Math.sin(an2)*19.5;E(hx2,hy2,1.4,1.4,oHs);}
+    ME(13.5,31,3.6,6.4,oHs);ME(12.5,31,1.4,4,oHc);
+    CAP(14,37,22,45,1,1,oHs);E(24,46,2,2,oHc);
+  }
+  /* sortie de test : rendu brut */
+  return finish();
+
+  function finish(){
+    var out=new Array(N).fill(null),k;
+    /* ombrage */
+    for(y=0;y<AH2;y++)for(x=0;x<AW2;x++){
+      k=y*AW2+x;var id=ob[k];if(!id)continue;
+      var o=objs[id],col=o.col;
+      if(fx[k]){out[k]=fx[k];continue;}
+      if(o.fl){out[k]=col;continue;}
+      var gid=sg[k]||id;function same(dx,dy){return sgAt(x+dx,y+dy)===gid;}
+      var dul=0,ddr=0;
+      while(dul<3&&same(-dul-1,-dul-1))dul++;
+      while(ddr<3&&same(ddr+1,ddr+1))ddr++;
+      var s=col;
+      function hh(a1,b1){var q=(Math.imul(a1,73856093)^Math.imul(b1,19349663))>>>0;return q%97;}
+      if(o.gloss){
+        var ang=Math.atan2(y-22,x-32),rr=Math.sqrt(((x-32)/17)*((x-32)/17)+((y-22)/15)*((y-22)/15));
+        var sid=(y<31&&rr<1.25)?Math.floor(ang*5.5):Math.floor((x+(y>>3))/2.3)+100;
+        var st=hh(sid,3);
+        if(dul===0)s=tint(col,.36);
+        else if(ddr===0)s=blend(shade(col,.4),"#2a1560",.15);
+        else if(rr>.52&&rr<.64&&ang<-.9&&ang>-2.2&&y<24)s=tint(col,.17);
+        else if(st%5===0&&dul>=1)s=tint(col,.11);
+        else if(st%5===1)s=blend(shade(col,.13),"#2a1560",.06);
+        else if(ddr===1&&dul>=2)s=blend(shade(col,.18),"#2a1560",.1);
+      }else if(dul+ddr>=2){
+        if(dul===0)s=tint(col,.26);
+        else if(dul===1&&ddr>=2&&o.big)s=tint(col,.12);
+        else if(ddr===0)s=blend(shade(col,.32),"#2a1560",.12);
+        else if(ddr===1&&dul>=2)s=blend(shade(col,.16),"#2a1560",.08);
+      }
+      /* ombre portée des cheveux / couvre-chef sur la peau */
+      if((gid===oSkin||gid===oSkinB)){
+        var ua=sgAt(x,y-1),ub=sgAt(x,y-2);
+        if((ua&&ua!==gid&&objs[ua].gloss)||(ub&&ub!==gid&&objs[ub].gloss&&ua===gid)||(ua&&ua===oHat)||(ub&&ub===oHat))s=blend(shade(skin,.24),"#2a1560",.1);
+      }
+      out[k]=s;
+    }
+    /* contours internes */
+    for(y=0;y<AH2;y++)for(x=0;x<AW2;x++){
+      k=y*AW2+x;var id2=ob[k];if(!id2||!objs[id2].ln||objs[id2].fl)continue;
+      var nb=[[1,0],[-1,0],[0,1],[0,-1]];
+      for(i=0;i<4;i++){
+        var q=at(x+nb[i][0],y+nb[i][1]);
+        if(q&&q!==id2&&zz[(y+nb[i][1])*AW2+x+nb[i][0]]<zz[k]){out[k]=blend(shade(objs[id2].col,.55),"#0b0618",.35);break;}
+      }
+    }
+    /* contour extérieur */
+    var res=out.slice();
+    for(y=0;y<AH2;y++)for(x=0;x<AW2;x++){
+      k=y*AW2+x;if(ob[k])continue;
+      if(at(x-1,y)||at(x+1,y)||at(x,y-1)||at(x,y+1))res[k]=OUTL;
+    }
+    return res;
+  }
+}
+
+/* ===== /AV2 ===== */
+
+
+
+
+
+
   function isPixelAv(c){return JSON.stringify(c)===JSON.stringify(normAvatar(BOT_AV));}
   function avatarSVG(cfg,headOnly){
-    var c=normAvatar(cfg),key=JSON.stringify(c),vb=(headOnly?"3 0 26 26":"0 0 32 48");
+    var c=normAvatar(cfg),key=JSON.stringify(c),vb=(headOnly?"6 0 52 52":"0 0 64 96");
     if(isPixelAv(c)){ /* Pixel garde son rendu d'origine */
       var body=avMemo.get(key);
       if(!body){body=gridToRects(outline(buildGrid(c)));avMemo.set(key,body);}
-      return '<svg viewBox="'+vb+'" shape-rendering="crispEdges" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'+body+'</svg>';
+      return '<svg viewBox="'+(headOnly?"3 0 26 26":"0 0 32 48")+'" shape-rendering="crispEdges" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'+body+'</svg>';
     }
     var url=avHdMemo.get(key);
     if(!url){
       if(avHdMemo.size>150)avHdMemo.clear();
-      url=hdImage(outline(buildGrid(c)),AW,AH,HD_PASSES,true);avHdMemo.set(key,url);
+      url=pxImage(buildAvHD(c),AW2,AH2,4);avHdMemo.set(key,url);
     }
-    return '<svg viewBox="'+vb+'" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><image href="'+url+'" x="0" y="0" width="'+AW+'" height="'+AH+'" preserveAspectRatio="none"/></svg>';
+    return '<svg viewBox="'+vb+'" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><image href="'+url+'" x="0" y="0" width="'+AW2+'" height="'+AH2+'" preserveAspectRatio="none"/></svg>';
   }
+  if(location.hash==="#avtest")window.__av={avatarSVG:avatarSVG,petSVG:petSVG,normAvatar:normAvatar,AV_ENUMS:AV_ENUMS};
   function avBg(cfg){
     var c=normAvatar(cfg);
     return "radial-gradient(circle at 50% 40%,rgba(255,255,255,.22),transparent 62%),"+BGS[c.bg];
@@ -1327,13 +1766,14 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
   /* palettes réalistes : m=base d=ombre l=clair o=motif/accent x=extra e=yeux */
   var PETS=[
     {id:"dog",n:"Chien",free:true,v:[
-      {n:"Doré",m:"#d9a441",d:"#a97a22",l:"#f2d28b"},
+      {n:"Doré",raw:1,m:"#d9a441",d:"#a97a22",l:"#f2d28b"},
       {n:"Chocolat",m:"#6b4423",d:"#4a2e14",l:"#8d6238"},
       {n:"Noir et feu",m:"#25252f",d:"#12121a",l:"#454556",o:"#b5651d",p:"tan"},
       {n:"Dalmatien",m:"#f4f2ee",d:"#cdc8bd",l:"#ffffff",o:"#1b1b22",p:"spots"},
       {n:"Husky",m:"#6e7686",d:"#4b5260",l:"#f3f5f9",p:"mask"},
       {n:"Crème",m:"#ead9b8",d:"#c3ad86",l:"#faf1dc"}]},
     {id:"cat",n:"Chat",free:true,v:[
+      {n:"Néon",raw:1,m:"#f0388a",d:"#a8186a",l:"#f77ab8"},
       {n:"Roux tigré",m:"#e0813a",d:"#b85f1f",l:"#f6c48a",o:"#a8481a",p:"tabby"},
       {n:"Noir",m:"#23232c",d:"#101017",l:"#454554",e:"#d5c23a"},
       {n:"Gris tigré",m:"#8a909c",d:"#626874",l:"#c3c8d2",o:"#4c515c",p:"tabby",e:"#7ac26a"},
@@ -1342,64 +1782,188 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
       {n:"Tuxedo",m:"#23232c",d:"#101017",l:"#454554",o:"#f4f1ec",p:"tux"},
       {n:"Calico",m:"#f4f1ec",d:"#cfc9bf",l:"#ffffff",o:"#e0813a",x:"#2b2b34",p:"calico"}]},
     {id:"rabbit",n:"Lapin",v:[
+      {n:"Sauvage",raw:1,m:"#9a7650",d:"#6f5236",l:"#cfb48e",o:"#5a4028",p:"agouti"},
       {n:"Blanc",m:"#f6f3ee",d:"#d4cec3",l:"#ffffff",p:"white",e:"#c03a4a"},
-      {n:"Sauvage",m:"#9a7650",d:"#6f5236",l:"#cfb48e",o:"#5a4028",p:"agouti"},
       {n:"Gris",m:"#9aa0aa",d:"#6e747e",l:"#cfd3da"},
       {n:"Noir",m:"#26262e",d:"#121218",l:"#464652"},
       {n:"Hollandais",m:"#f6f3ee",d:"#d4cec3",l:"#ffffff",o:"#6b4a30",p:"dutch"},
       {n:"Fauve",m:"#d39a58",d:"#a8742f",l:"#efcb92"}]},
     {id:"fox",n:"Renard",v:[
-      {n:"Roux",m:"#dc6a28",d:"#aa4614",l:"#f6e2c8",x:"#2a1d18"},
-      {n:"Arctique",m:"#eceff4",d:"#b8bfcb",l:"#ffffff",t:"#9aa3b2",x:"#4a4f5a"},
-      {n:"Argenté",m:"#6d727e",d:"#444854",l:"#d7dbe3",x:"#1e1e26"},
-      {n:"Croisé",m:"#b7773a",d:"#865220",l:"#ead2b0",x:"#2a1d18"},
-      {n:"Fennec",m:"#e6c58f",d:"#bf9a62",l:"#faeed8",t:"#e6c58f",x:"#bf9a62",p:"fennec"}]},
+      {n:"Roux",raw:1,m:"#dc6a28",d:"#aa4614",l:"#f6e2c8",k:"#2a1d18",x:"#2a1d18"},
+      {n:"Arctique",m:"#eceff4",d:"#b8bfcb",l:"#ffffff",t:"#9aa3b2",k:"#6a7286",x:"#4a4f5a"},
+      {n:"Argenté",m:"#6d727e",d:"#444854",l:"#d7dbe3",k:"#1e1e26",x:"#1e1e26"},
+      {n:"Croisé",m:"#b7773a",d:"#865220",l:"#ead2b0",k:"#2a1d18",x:"#2a1d18"},
+      {n:"Fennec",m:"#e6c58f",d:"#bf9a62",l:"#faeed8",t:"#e6c58f",k:"#bf9a62",x:"#bf9a62",p:"fennec"}]},
     {id:"snake",n:"Serpent",v:[
-      {n:"Vert",m:"#4f9a3c",d:"#35722a",l:"#8fd06a",o:"#2a5a22"},
+      {n:"Vert",raw:1,m:"#4f9a3c",d:"#35722a",l:"#8fd06a",o:"#2a5a22"},
       {n:"Python royal",m:"#3a2c1f",d:"#231a12",l:"#6b5238",o:"#c9a15a",e:"#e8c63a"},
       {n:"Serpent des blés",m:"#e5782c",d:"#b8561a",l:"#f2b070",o:"#b8302a"},
       {n:"Noir et blanc",m:"#1f1f27",d:"#101016",l:"#555563",o:"#f2efe8"},
       {n:"Albinos",m:"#f2d85a",d:"#d1b030",l:"#fbeea0",o:"#f2f0e6",e:"#d63a3a"},
       {n:"Corail",m:"#c8402a",d:"#8f2418",l:"#e8886a",o:"#14141a"}]},
     {id:"spider",n:"Mygale",v:[
+      {n:"Brune",raw:1,m:"#7a5a46",d:"#4e3828",l:"#a58468",o:"#c9806a"},
       {n:"Noire",m:"#26242c",d:"#121016",l:"#4a4654"},
-      {n:"Rose du Chili",m:"#7a5a46",d:"#4e3828",l:"#a58468",o:"#c9806a"},
       {n:"Bleu cobalt",m:"#3b4f9a",d:"#243062",l:"#6a82cc",o:"#1b2347"},
       {n:"Orange",m:"#d9822c",d:"#a85a14",l:"#f0b068",o:"#2a1d18"},
       {n:"Orteils roses",m:"#2e2b36",d:"#17151c",l:"#524e60",x:"#f08aa8"}]},
     {id:"hen",n:"Poules",v:[
+      {n:"Rousse",raw:1,m:"#b5542a",d:"#85381a",l:"#d98a58"},
       {n:"Blanche",m:"#f6f3ee",d:"#d6d0c4",l:"#ffffff"},
-      {n:"Rousse",m:"#b5542a",d:"#85381a",l:"#d98a58"},
       {n:"Noire",m:"#26262e",d:"#121218",l:"#46465a"},
       {n:"Sussex",m:"#f0ece4",d:"#c8c2b4",l:"#ffffff",o:"#1f1f26",p:"speckled"},
       {n:"Dorée",m:"#d9a04a",d:"#aa7424",l:"#f2cf8a"}]},
     {id:"goat",n:"Chèvre",v:[
+      {n:"Pie",raw:1,m:"#c89a60",d:"#9a703a",l:"#f2efe8",o:"#7a4a28",p:"pied"},
       {n:"Blanche",m:"#f2efe8",d:"#cdc7ba",l:"#ffffff"},
       {n:"Brune",m:"#8a5a35",d:"#5e3a1e",l:"#b88a5e"},
       {n:"Noire",m:"#26262e",d:"#121218",l:"#46465a"},
-      {n:"Pie",m:"#f2efe8",d:"#cdc7ba",l:"#ffffff",o:"#7a4a28",p:"pied"},
       {n:"Alpine",m:"#c89a60",d:"#9a703a",l:"#e8c896",o:"#2a1f18",p:"alpine"}]},
     {id:"horse",n:"Cheval",v:[
-      {n:"Bai",m:"#8a4a26",d:"#5e2e14",l:"#b87a4a",o:"#1e1612",x:"#1e1612",e:"#2a1d18"},
-      {n:"Noir",m:"#24242c",d:"#101016",l:"#484856",o:"#14141a"},
-      {n:"Alezan",m:"#b5602a",d:"#7e3e14",l:"#d98e58",o:"#8a4a1e"},
-      {n:"Gris pommelé",m:"#aab0ba",d:"#7a808c",l:"#d6dae2",o:"#656b78",p:"dapple"},
-      {n:"Palomino",m:"#e0b060",d:"#b08430",l:"#f2d296",o:"#f6ecd4"},
-      {n:"Pie",m:"#7a4426",d:"#522a14",l:"#a8703e",o:"#2a1d18",x:"#f4f1ec",p:"pinto"}]},
+      {n:"Bai",raw:1,m:"#8a4a26",d:"#5e2e14",l:"#b87a4a",o:"#1e1612",k:"#1e1612",e:"#2a1d18"},
+      {n:"Noir",m:"#24242c",d:"#101016",l:"#484856",o:"#14141a",k:"#0e0e12"},
+      {n:"Alezan",m:"#b5602a",d:"#7e3e14",l:"#d98e58",o:"#8a4a1e",k:"#7a3a14"},
+      {n:"Gris pommelé",m:"#aab0ba",d:"#7a808c",l:"#d6dae2",o:"#656b78",k:"#3a3f4a",p:"dapple"},
+      {n:"Palomino",m:"#e0b060",d:"#b08430",l:"#f2d296",o:"#f6ecd4",k:"#efe2c0"},
+      {n:"Pie",m:"#7a4426",d:"#522a14",l:"#a8703e",o:"#2a1d18",k:"#2a1d18",x:"#f4f1ec",p:"pinto"}]},
     {id:"monkey",n:"Singe",v:[
-      {n:"Macaque",m:"#8a5e3a",d:"#5e3c20",l:"#d9b48a"},
+      {n:"Macaque",raw:1,m:"#8a5e3a",d:"#5e3c20",l:"#d9b48a"},
       {n:"Capucin",m:"#4a3426",d:"#2c1e14",l:"#e8d2ac",o:"#241810",p:"cap"},
       {n:"Singe araignée",m:"#26242c",d:"#121016",l:"#c9a688"},
       {n:"Tamarin doré",m:"#e0902c",d:"#b06814",l:"#f2c070",o:"#c8741a",p:"mane"},
       {n:"Face blanche",m:"#1f1f27",d:"#101016",l:"#f2efe8"}]},
     {id:"birds",n:"Oiseaux",v:[
+      {n:"Moineau",raw:1,m:"#9a7a56",d:"#6b5238",l:"#d8cdb8",o:"#7a5a3c",x:"#3a2a1e"},
       {n:"Perruche",m:"#48b04a",d:"#2d7a30",l:"#a8e070",o:"#f2d84a",x:"#e8a030"},
       {n:"Canari",m:"#f4d63a",d:"#d4aa14",l:"#fbec8a",o:"#f4d63a",x:"#e8a030"},
       {n:"Rouge-gorge",m:"#8a6a48",d:"#5e4630",l:"#e8863a",o:"#8a6a48",x:"#2a1f18"},
       {n:"Mésange bleue",m:"#5a96d8",d:"#2f5ea0",l:"#f2dc5a",o:"#e8f0fa",x:"#2a1f18"},
-      {n:"Cardinal",m:"#d0382e",d:"#972018",l:"#e8604a",o:"#d0382e",x:"#f0a030"},
-      {n:"Moineau",m:"#9a7a56",d:"#6b5238",l:"#d8cdb8",o:"#7a5a3c",x:"#3a2a1e"}]}
+      {n:"Cardinal",m:"#d0382e",d:"#972018",l:"#e8604a",o:"#d0382e",x:"#f0a030"}]}
   ];
+  /* ---- animaux HD : calqués sur des illustrations pixel art, recolorés par variante ---- */
+  var PETART={"dog":{"w":55,"h":67,"p":[["#ecac56","b",0.77],["#4c3629","b",0.12],["#a85b24","b",0.41],["#f5e9bc","b",1.0],["#7d3529","b",0.22],["#2d131b","x"],["#c3996e","b",0.66],["#c1732a","b",0.53],["#a4673e","b",0.44],["#69262b","b",0.13],["#924727","b",0.31],["#deb77e","b",0.8],["#d5872f","b",0.62],["#a3181e","f"],["#3e1c1a","b",0.0],["#11090e","x"],["#86513e","b",0.32],["#5e3222","b",0.14],["#cf9556","b",0.66],["#ead29f","b",0.91],["#9e7759","b",0.49],["#531f2f","f"]],"r":["...###.............##..................................","..#h8h#...........#28#.................................","..#g721#........##802#.................................","..#k82ae#......#5gib7h#................................","..#k68a4e#.....#h80b22#................................","..#kbga295#####5gib6a7#................................","..#ki8aa4g1e11fe8b6g4i#................................","..#h88gg8072c7g48i894b4#...............................","..#egg80072cccc7c849gb2#...............................","...#e8ccc277777cc899ib2#...............................","...#g00c27777777ccagb02#...............................","..#hijjc2703b0777cc2474#...............................","..#hekb7703j00c777cca99#...................#####.......","..#f5k7770b1118cc7772495#.................#h8668###....","..#e1k27778fkk127777729l#.................#eaiii6k1#...","..#hhaccc2951jk7c77777a9#.................##e42i0ik1#..",".#18ic00c7akkb00bbi777745#..................#ea27cik#..",".#k6ic0cccc0000j33j077799#...................#9a2706#..","#lllh8ii000000j3333j07799#...................#54a7cik#.","#5ll5k33300333333333j7299#....................#ea77ck#.","#ff5l63333333333333j62999#....................#fh2ccig#","#5fl6j33333klj3333jb64999#.....................#h2ccig#","#gllg6j33655k3333jb64a499#.....................#h777ik#",".#5555llll63j3bjjbk94a495f##..................#ea7c2ak#","..#1k6666ggg6bbbbkaaa455l95f##................#h27288g#","...#1111g9ggk6bb8877all5999ll5#############..#h272a8k#.","....#fflggkk6bji77249lll49944l5ehhhhhhhhhe5##ea72aa8k#.",".....#59kkk6jjji2a49ll94a99aa4994a2777cc72ah59a2aa8g1#.","......#egk633jk844ddlh27249a284427cccc000cc2a944a8g1#..",".......#lg6b6kl9ddd9h70c224a7c2acccc0ccc000cc2l9ghe#...",".......#949ce9lddd9gc00222227072cccccccccc00c7955##....","......#f1cdj9d9ll8i000c2cc227002cccccccccccccc2e#......",".....#5g6e77l5kbj33j0ccccc227002cccccccccccccc2ef#.....",".....#egb6ii66j333j0ccccc222c00cccccccccccccccca5#.....",".....#5gb33333333jicc0cccc27000cccccc7772cccccc2e#.....",".....#5ai3333333jbicbbcccc27cccccccc272a2ccccccc45#....",".....#1i6b33333jbbbjj0cccc227cccccc2aaaa2ccccccca5#....",".....#1ibb33333jjjj3j00ccc2227ccc72aaaaa2ccccccc2e#....",".....#1ijjj3333j3333jb0ccc7aa2cc2aaaa2aa7ccccccc2h#....",".....#1ijjjj33333333330ccc244272aaaa2i82cccccccc2h#....",".....#e8bbjb333j3333330cc7244aaaaaa8ii880cccccc72h#....","......#hi66j333bjj33jbccc2a99aaaaai66kgkbcccccc22h#....",".......#86g6j3b66b33jccc72a99aa8ii6hh55kj0ccccc2ae#....",".......#469g6666kkbj0ccc2aee48666klffff16jccccc245#....",".......#92gfg666kkb0ccc22ae1k666hfflll5f13jcccc245#....","........#a9lfg66kgg0cc222711gghfflllll5f1b3jcc2495#....","........#aall5fgg947cc7a7c1f##ffllllll5f#1bjc2a995#....","........#ia4llff#feaccc7245#..#fllllll5#.#gbj24995#....","........#0i4llf#.#fhcccc2e#....#l44lll5#.#16bi999e#....","........#70a9l#...#10cc74#.....#59a44l5#..#166k449#....","........#h0a99#....#0ccae#......#59aa4e#...#188a495#...",".........#029a#....#0cc4#........#54aa4e#...#h4444l#...",".........#0c4a#....#0c74#.........#e4a4e#....#e4aa4e#..",".........#0ca4#....#0c29#..........#h495#.....#944ah#..",".........#0ca9#....#0ca9#..........#lll5#.....#e44ah#..",".........#77a#.....#0ca#...........#lll5#......#ha4h#..",".........#77a#.....#cca#...........#ll5#.......#82ah#..",".........#772#.....#cca#..........#lll5#.......#872h#..",".........#777#.....#cca#.........#5l995#.......#872h#..","........#a7ih#.....#cca#........#ggg95#........#877g#..",".......#e27gl#....#acc4#.......#e89995#........#87cg#..","......#gkb8l#....#17cce#.......#51555#........#k60cg#..",".....#g66b79#....#kii7#........######........#1bbbig#..","....#h86gige#...#kbbb7#......................#8b866h#..","....#5hheg5#...#hi68b8#......................#ekhgh5#..","....#######....#5hghke#.......................######...","...............#######................................."]},"cat":{"w":82,"h":68,"p":[["#f33e83","b",0.81],["#1e1f6e","b",0.08],["#6b1942","b",0.21],["#400d2b","b",0.0],["#c61377","b",0.58],["#f27bae","b",1.0],["#6b1b68","b",0.25],["#d19c26","f"],["#09060f","x"],["#9a2258","b",0.42],["#9c588b","b",0.63],["#25174d","b",0.0],["#ac1571","b",0.48],["#d04b89","b",0.73],["#8fb9df","f"],["#4b1d72","b",0.17],["#f15e96","b",0.89],["#941d71","b",0.41],["#131031","x"],["#2e599d","b",0.47]],"r":["....###..................##.......................................................","....#d9#................#dd#......................................................","....#ad9#..............#ag93#.....................................................","....#6d42#............#25c63#.....................................................","....#46549#..........#20d6cg2#....................................................","....#465g09#........#9gdf44g2#....................................................","....#4c6d0hb########9ddcc44g2#....................................................","....#446dcf12999992bd5dh4d4g2#....................................................","....#4466a66400000465gh64gdg2#....................................................","....#4hffag0g0000040ggc6cggg2#....................................................","....#c11ag00500gd400000c6gg42#....................................................",".....#1d44g500gd40000000c6d42#....................................................",".....#d044g505g4400000000d442#....................................................",".....#00000g0g00000000000046b#....................................................",".....#99d0000000d99940000046i#....................................................",".....#883c00000c3888290000042#....................................................",".....#j8e540004288eji82000046b#...................................................","....#be8jf4000h1j8jef900000004c#..................................................","....#ceb1f0000hjjijeag00044449#...................................................","####20aaaaggggdaaaaa5000044h63#...................................................","####64dggg555gggggdddddd0046i#....................................................","....#66d5dc49ggggg66666h00042#....................................................",".....#gg55dhggggggggggg466666b#......#############................................","..###66cg5d60ggdhg666d004c1i888######c55555555d9c9##..............................",".#a#.#ichhhdhhh9dgddchc443i226b2299aad55gggggg000d92##............................",".##...#2hhdghhhdggdd4hhh2i894cf640g55ggg000000000g0423#...........................",".......#2cdggggggg44cc6b8b3944cf00005000000000000000449##.........................","........#if44444444cf1b8b8c400044000000000000000000004400#........................",".........#88811111111ffb844000004000000000000000000000hf00#.......................","..........#8ff111fffffb39400000000000000000000000000000ch09##.....................","...........#ffffffffbi394400000000000000000000000000000df009#.....................","...........#ba6aafff33244000000000000000000000000000000dfh002#....................","...........#87277fffc4440000000000000000000000000000000041d09#....................",".........##447777f4440000000000000000000000000000000000001c009#...................",".........#344677ff4555g00000000000000000000000000000000001c009#...................",".........#34dh22fhd555g0000000000000000000004000000000000ifh09#...................",".........#345dh6hd5555g000000000000000000004400000000000081h4d2#..................",".........#3h55d4d5555g0000000000000000000004400000000000081h400#..................","..........#1455555555g000000000c00000000004c400000000000081h400#..................","...........#44g555554000000000010000000044h1400000000000481h440h#............#....","...........#f44d5554400000000001c000044444h140000000000048116400#...........#9##..","...........#ifc44d54400000000041c444444444h1400000000000481164009#.........#3d93#.","............#f6h44d44400000000c1c4444444h66140000000000048i1640042#........#h0d2#.","............#cf6c4444c40000000c1hc444cccf1b1h00000000000c88bfc40042#.......#50ga#.","............#cfb34444f60000000c11h44h11888881c000000000448#b1f400042#....##h5g5d9#",".............#96b88c4f600000000c111b888b11118c44000004444#.#if4400gdc####345g55d9#",".............#9c6bb33bf400000004i8888bb111118bh4400044444#.#if44000g5999d555555d9#",".............#94c61b88i2000000448###81111111iifh444444444#..#b644000g000ggg555dh6#",".............#2c4c11i8830000004h#...#bf1111118ifh44444444i#.#i144400000000g55ghfb#","..............#24c111i83000000c1#....#cf11111i8ifc4444444f#.##1c444000000g550461b#","..............#244411i83000004c#.....#1h461111i8#144444444#...#1c444400000444442#.","..............#2444cfi8300004h1#......#1h4h111i#.##1h444444##.#1cf64444444444fi#..","..............#24444fi8300004h#........#bh4hh1i#...#bh444443#..#f1fff4444hfffi#...","..............#24444fi83000009#........#b6444fi#...#ifh44443#..#iibbb6444cf1i#....","..............#3c444fi82000046#........#b6444b#.....#bf44443#...##ii#bh999hb#.....","..............#if444fi3400046b#........#2444c#......#i600443#.....##.#######......","...............#3444fi2000042#........#bh44c1#......#i600443#.....................","...............#3444fi2000042#........#h44cf#.......#2400443#.....................","...............#3444fi2000442#......##bc44cf#.......#2000443#.....................","...............#b44hb3900049#......#226c4c6i#.......#2000463#.....................","..............#b644f82400043#.....#34h444hb#........#90004f#......................",".............#9400cb89000043#.....#3h1c4chb#.......#900004#.......................","............#g000cf89g550043#.....#if1fffb#.......#5ggg054#.......................","............#c6h4c8a5555g443#......#######........#44da654#.......................","............#cff668d555a546i#.....................#6c4h646#.......................","............#2bbbi86ddh6d6b#......................#b223b2b#.......................",".............######bhc66hb#........................#######........................","...................#######........................................................"]},"rabbit":{"w":62,"h":67,"p":[["#161112","x"],["#786859","b",0.39],["#ac9c87","b",0.74],["#50413d","b",0.1],["#a88767","b",0.62],["#d0c6b3","b",1.0],["#2f2527","x"],["#5c4b44","b",0.18],["#84715c","b",0.45],["#6a5a4f","b",0.29],["#675143","b",0.23],["#8e6e54","b",0.45],["#413432","b",0.0],["#c0a07c","b",0.78],["#c2b29a","b",0.88],["#977e63","b",0.55],["#938473","b",0.58],["#785e4a","b",0.33]],"r":["....................###.......................................","...................#336#.....###..............................","..................#36666#...#8ee#.............................",".................#66cc60#.##ga712#............................",".................#3c77600#c83hh7f#............................",".................#aabac60cg3hb4hf#............................","................#hhbba703g3hbd48f#............................","................#babba30g7hbdd48f#............................","................#babh763e9b4d448h#............................","...............#7babh7012bdd44bf#.............................","...............#hhhhhc6g24d44bha#.............................","...............#hah3h63e2dd4bbh#..............................","...............#aa73307e2ddbfh8#..............................","...............#77cc6682fd4bgah#..............................","...............#3c6c0342bdhg8a#...............................","...............#66606342aaggab#...............................","..............#0000033f2c1ghb#................................","............##c7663hhcf2c28h#.................................","...........#c36cahh76cf19ea#..................................",".........##93chahb4bccf812#...................................","........#c97ahaa7af47392g8#...................................","........#a1ah7c8eeff8c74f7#...................................",".......#7bab7cge22e871348#....................................",".......#ahba38g00077781f3#....................................","......#ahbha8ecg301472177#....................................","......#bbhbaf20006g439839c#...................................",".....#7bb4h4e86cc7e8771333#...................................",".....#3ahb4d5e2gg28hbbh399#......#########....................","....#3aaabd55g7a7ah4bfcc710#..###6c3791936##..................","####chhbhff2e17habbfh48399c0##06c666778f999c##................","..#63hahbd48g13ab444df79f96ca300666c363f184876##..............","...#6acc2dba37338f4df772436cha7606c7999117887936#.............",".###6ccgefhh92g78f4f99ge16c3aa7c6c37798hf8779997c##...........",".#..#13228h937931811g25gcc7bbac063710388888319993c0#..........","...###331888896398g255gcc7b4bbhc6a71a3981989c19793c0#.........","......#61g21g113ge5529cc7hh4bahhccc9888176917c77713c#.........",".......###19937972293cc3bb3bh37aabb38h787669c7c7933c6#........","..........#c6c39c33cccchb4hba3c794dffc8813c7ccc3373c36#.......","..........#663973363778hd4ah3c37774d4ff178799377c77c3c6#......","..........#73c99797688a44bh7c3914f8fd4887777cccc8ff93c30#.....","..........#171113199c444bb7cc333f4488888881c666667731c36#.....","..........#9182g8188f4fdba33377ccd84f711336c8ffff3cc71c3#.....","..........#88222gg88ffd89787903ah88888833c9f48d4ff13c736#.....","..........#122e228gd888891f893068fdd3733c9f4a418f3f17603c#....","...........#e55e222g8838888779669ff8987c7f418883189193003#....","...........#25555222993888hc0c7c319789361f3888998cc317763#....","...........#155555e2891984ba0chc39719863f9998488936c7633c#....","...........#3e555e22g8888bbb3cac63991308f771f88881cc6603c#....","............#1ee55252g8818bbhahh6c31330gg388f8188136c3036#....",".............#22e5ee52g898ahhhb46733330ge1f48898189c736c60###.",".............#3gge2g2eg11fccabbd6999330g22d48899798177666061g#","..............##1ggg122918c7hb4f38gg1908d5dd419993997c66c03f5#","................#c91912hahhbbhf71g22283325ed47a99937c66c66125#","................#06c3c177hbha8771g222216255dfh7h71c66c33069e5#",".................#6000a7abaca9##91g22gg3955eh7a7a996c37c0c855#",".................#7c00aahb371#..#c9gg8g96g5eb6c3363c3730c1e51#","................#hh36chbbhch#....##671117c254c66c06cc76012eg#.","................#4b30a44baaa#......#00069cc2e4c60606c607g2##..","................#4b30fd4ba1#.######00c6000032e2ac66060618#....","...............#f4bc3dd4h130#c37haacccc66000cg24h3600#####....",".............##8d4a08dddf8#03h7hh33cc600000009ed4bcc#.........","............#ff44a00ddd48#.#73hh3cc00c2eeeeeedd44bcc6#........","...........#8bab306ddddb#..#######0322ee44eed4444a6ac#........","...........#a7b30fddd448#.........#2aecfed44444bhhh3##........","...........####0fffdhdf6#.........#6e9he44b33333c###..........","...............#87dcdf3#..........#0f3hfh3c######.............","...............########...........#########..................."]},"fox":{"w":80,"h":62,"p":[["#9b431a","b",0.37],["#563d32","b",0.21],["#c6a988","b",0.83],["#6b2c1a","b",0.18],["#987b62","b",0.58],["#e3924b","b",0.78],["#1b1314","x"],["#ce7536","b",0.64],["#a45f33","b",0.48],["#7c5943","b",0.39],["#4f2119","b",0.08],["#833619","b",0.28],["#c66123","b",0.56],["#c2895e","b",0.69],["#da762d","b",0.67],["#e0ccac","b",1.0],["#b3541f","b",0.48],["#341e1a","b",0.0]],"r":[".##............###..............................................................","#d8#..........#88h#.............................................................","#429##.......#8d99#.............................................................","#29f96#.....#8d214#.............................................................",".#12dah##...#d29h4#.............................................................",".#44283bg###7df164#.............................................................",".#22283cgg08c2f1h2#.............................................................",".#298eegcc7e0d2hhf#.............................................................",".#d85eccece5041994#.............................................................","..#75eceeeeeeb872db#............................................................","..#55cee7e5ee5cg803#............................................................",".#eg7gc7gge5555g3b3b#...........................................................",".#b10cg03bgc5eeegb30#...........................................................",".#ahgeg3h1a3gecee0bgc#..........................................................",".#03550a330b3gcgegbgcb#.........................................................","..#55eb0cg0gc00gcc0ggga#........................................................",".#555c00gdd7cd2d7c0gcg0a####.......###############..............................","#9d5e0bdffff2fff270cc003b003#######ggggc7777777570###...........................","#hhf291ffff2fffff70gc003b0cc0bb0gce7ecc7755777gg777g0##.........................","#64ff24414f22fff2d0ccg0b3bceegb3bgc775777cc7gg7g7777ggg##.......................",".#14499244422ff280gcc003bgceeec0bggc775577cc7c7g757557578#......................","..###1hh11942ff20gccgcg30ggc55ec0ggcc7e7ccc777g87777777757#.....................",".....#9411994ff27gccceeb0gg55eecg0ggcccecccc7gg0g7777777757#....................","......#241942ff2dcggcee0gcgceeeeccgcccccccgcccg00g07g777875c#...................","......#429442f222cggcec0ccgceeeecccccgccccggcc000g777gg77b757#..................",".......#2222244fdcccce0ceeggeeeeeccccccccecccc0b07777g0g730e77#.................",".......#ff24f422227eeg0eeeggceeeeeeccccceececc0bg777gggg583c77g#................",".......#4f222ff2f22eegceeegggeeceecccccceececgbbg777gg7755ag7553#...............","........#ff22f2fffdcccccecc00ceeccccccceeeeec030ggcgg77555h0c5c3#...............","........#4f22ffff28ccccccccg0gcccccccgggeeecg3bgc7ggg77555hbgc0ba#..............",".........#2f2fff280gcggccccgb0cccccggg0cecg003bgc77gg75557h3000bba#.............","..........#2f2224g8ggceceeccbbggccgg00gcc00b33bccecc777558h300b0g0#.............","..........#4ff222d288ceeeeccb3b00g0000g0b31aa30ce7cg777573abggbgeg0#............","...........#fff2f2f2fdeececcb3bbbb0bbbbb3991a30gc7cc7755gaa3cgggeecb#...........","............#ff22fffff8eccccbab3a33333394491h4b0cccc775c0ha3ececece0#...........","............#244422222dccggc3aaaaaa99949116664d0gccc777g3ha37eeeeeecb#..........",".............#9149222fd0g0b0aaa19999##611hhh61f80ceee7gbah33bcceeceeg#..........","..............#91119222b00bbah1#####..#9911hh6228gce7cg3h63a3ggeecccc0#.........","...............#ahh114830b3336#........#9911h61fd0gccc03h6aa30gcecgcec#.........","................#3ah6hb33b0bh#.........#49911h64f830gc0366h3b30gccgeceg#........","................#baaaha0bggb#...........#4991aah2d3300ba66633330gcgcccgg#.......","................#03a3hh0bggb#...........#9499a3h129a333ah66aab3b0gccgccgg#......","................#g3a3hh0b00b#............#9499aa614aaa3a3h46a3b330gcgcgcgg#.....","................#gba3h6ba0b3#.............#94993h1##aaa3a3h66a33abggggggg8d#....","................#00a3663h33#...............#9493a#..#9aa33bh6haa3b0g00gggg22#...","................#30ab66ah33#................#449h#...#993baa6#aaa3bgb0gcdgdff#..","................#a03366hh1a#.................#441a#...#99ba3#.#aa330bgggdfffff#.","................#h3ba666h1a#.................#449h#....#930a#..#aaabbbbdddffff#.","................#633a666hha#.................#949h#.....#hbb#..#hhaa33b9f2ffff2#","................#6a3h666hha#.................#993#......#h3b#...##haaa922ff2fff#","................#663a6666h3#.................#99a#.......#bb#.....#h1994442ffff#","................#66ah6666ha#.................#48#........#gb#......##149444222f#","................#6hh66666h#.................#148#........#0#.........###194444##","................#66h6666hh#.................#18#........#h3#............######..","................#hhh6666hh#................#h18#........#h3#....................","................#hhh6666hh#.............###663#.........#ha#....................","...............#66h6666hhh#.............#6666h#........#66a#....................","............###66666666hhh#............#h6h66#........#666h#....................","............#16h66#h6666h#..............#####........#hh66a#....................","............######.#6666h#...........................#1h11#.....................","...................#h1h1h#............................####......................","...................######......................................................."]},"snake":{"w":80,"h":38,"p":[["#443a22","b",0.2],["#7e6246","b",0.54],["#212417","b",0.0],["#616835","b",0.52],["#c4a47b","b",1.0],["#3a4222","b",0.23],["#4b542a","b",0.37],["#7c7341","b",0.62],["#3a2d1b","b",0.11],["#675d35","b",0.47],["#a1835f","b",0.77],["#674d37","b",0.38],["#12110d","x"],["#2a321c","b",0.11],["#9a9257","b",0.83],["#564829","b",0.32],["#271e12","x"],["#523f2e","b",0.26]],"r":["........######..................................................................",".....###66500d##................................................................","....#33333333355##..............................................................","...#d33370dd80555g#.............................................................","..#d33362h0d8gg25gg#............................................................","..#37600dg56aa1gd25#............................................................","..#ab633791bh4186d6d#...........................................................","..#cbaaahhb1a1hb66d2#...........................................................","..##hhh11####gbb16gd#...........................................................","....#####....#8b195d#...........................................................","..............#1ae3d#..................########.................................","..............#1a732#..............####5f8ff865###..............................",".............#b4475d#............##80ffee9ff97f0f8##............................",".............#444352#...........#gfe9h8777ff77ffff95#...........................","............#1a4a32c#..........#8f9736658566686f9e9fd#....................#####.","............#44476g#..........#6798955652d55526690f0g#..................##85d52#","...........#44a135c#.........#88e796gd5dfb1bb05588f08c#...............##55c####.","..........#a44a5d2#.........#0fff606ddbbb8##hb8d59e9d2#...............#3dc#.....",".........#144a35c#.........#d0f095g2fb8###..#c050f976d#..............#cgc#......",".........#4a476dc#.........#97e76520b##......#2g09805d#..............#53#.......","........#a44a02c#.........#88f76g2db#.......#d9ee8g2d2#..............#6fc#......",".......#a44a76g#..........#ffff622f8#.....##gf07775c28#.......###....#20f2#.....",".......#a44e3d2#.........#5ff805ddb#....##5790f89dd2h#....####8g5###..#d9fc#....","......#a44a05g#..........#f77f6dcf#....#28097905dcdb#...##g890f0780g##cc20eg#...","......#a44ag6c#.........#88f736d2b#...#25e7893dcdh8#...#2900668660f73ccccd8f5#..",".....#8444766#.........#g8fff52208#...#8f0995cdhb##...#80995d655gd5f02c2hc23f5#.",".....#ba4a736#........#c97f866c2b#...#d09f85d8h8#....#d8ff6d2dhh0dcf08ccc2c2f3d#",".....#1444732g#......#g00e7665d0h#...#607fgd2b##....#877f65d0h8g827e62cccc2c975#",".....#ha4a9608g##..##g89f93682db#...#d37e7752#.....#80f76220##2cg9f6g2cccc1c88d#","......#a1a1560ggg##g9e700365d2b#....#d57e98g2#...##f0f865df#..#3e98dcgcccccc975#","......#baa1g56335800777335gddbh#....#2g6f0f89d###g00e95228g#.#g990528c2chcc8f62#","......#b11af56g8366636665ccdbh#.....#gc530feefff7ff09362d8#..#599fdccccccc075d0#",".......#b1a10ddd66006d82dd0bh#.......#055637eff0376652ddb#..#269ee082ggc30062d#.","........#bb11fd55dccdd2d0b18#........#8gd56563666665c2dh#....#585399e78fe665dh#.","........#gbbb110ddddd0bb1hg#..........#80ddgg662gd5dd0h#.....#8555g566d56dd0h#..",".........##h11b11111b1bh###............#8bf02ddd2d00bh#.......#8b0dddddd0hbg#...","...........###hbhhbh####................##8h1111bbb###.........###bhhhbhh###....","..............######......................#########...............#######......."]},"spider":{"w":80,"h":53,"p":[["#7d513a","b",0.31],["#2b1e1a","b",0.0],["#4f352a","b",0.15],["#f3f3f3","b",1.0],["#150f0e","x"],["#402820","b",0.07],["#5c3d2e","b",0.2],["#929291","b",0.58],["#412f28","b",0.1],["#35251f","b",0.04],["#545151","b",0.26],["#070505","x"],["#6b4735","b",0.25],["#211715","x"],["#bfbebd","b",0.77],["#906044","b",0.39]],"r":["......................#####.....................................................",".................#.###511d9###..................................................","..............###1#52889228926###..#####........................................","..............#dd5922888982216666##92df0##......................................","............##449981188666262262c24d19c00#......................................","............#49582989986c68266c62c6b4b1889#.....................................","............#4555199826ccc22988222621a4886#....######...........................","............#52991d28c6229111d91682c974d99#...#159cfc#..........................","...........#d529999d882684d4dd5d12d869b4d9#...#98c9929#.........................","............#159961555291144441515d129b441#..#d91d9d5d2#........................","...........#b9191d259992dd44ddd1dd4415bdb4#..#4444444d12#.......................","............#d1dd1d914d41b4ddddd444bd9b4bb#.#14bb4a31bd52#####..................","............#1d1b4d44dd4d9d444d4444b41bbb4#.#4bbb4e33a1198c5cf##................","............#d14d22d94d444dddd4bbbbbd14ddd4#dbbb4a33ea99146d500f#...............","............#490f0c9c265b444b4bbbbd900c662cc54bbbe3e81d4bbdd152c0##.............","...........#84000c6d28829db4bbbb526691981ddd2c249eedd4bbbbd37d254d9##...........","..........#d190c99d5119195b154b46091928dd991998c97dbbbbbbd4737abdd889#..........",".........#1894165d4bdd44d9141ddccdd88284982c6228815bbbbadd188a77ad4826#.........","........#88944bbb444bd444494bb505d9992284988c8d88859b4d99991665ae4b12f6#........",".......#f69d49###4ddb419d4bd4d5f2d998828bd998849ffc912d444d1c5602dd##9dd#.......","......#9f294##...#45c90625db512f698d2129b4186c0c641524bbbbb4516f06#..#d8#.......","......#955##......#fc6d811991b5c0291519dbb1cff54b9684bbbbbb##4520f6#..#48#......",".....#594#.......#ff69db44d145596f659d14bb5f6412d160cbb44a#..#d550f#..#498#.....",".....#24#.......#f025d44bbbbb54412cf0655546548260dd6c8bd96#...#16094#..#45d#....",".....#24#.......#6029###4bbbd2cd69156659d4db88860cd16cbb292#...#b4418#..#dd8##..","....#61b#......#1ddd#...#bb902d2b24d1d82264b8882661d2cdb11c0#...#d1999#..##d89#.","....#24#......#19d4#.....#46005db1d218990664d9182261829##d6c#....#d4899#...####.","..##d9b#.....#12844#......#06c5bbd5994d6c601bd911284d8#..#500#....#d120#........",".#29d##......#0694#.......#0c55bb44db44520f21122541b49#..#1c9#.....#d60f#.......","#8d##........#f09#........#f021bb#4bb1429fc24495c64#41#...#d19#.....#5c5#.......","###.........#46c##........#ff2b##.#d11b156004b450c#.##....#119#......#4d8#......","............#94#.........#4444#...#44b#d22f0b##120#.#......#12#.......#dd1#.....","............#9d#.........#9dd#.....###.#d19b#..#6f#........#566#.......#41#.....","...........#944#.........#929#.........#11d1#..#dd#.........#61#.......#441#....","...........#2b4#........#2929#.........#98d9#..#dd1#.........#d8#.......#1c#....","...........#24#.........#6269#.........#dd82#..#998#.........#89#........#54##..","..........#664#.........#ff6#...........#925#..#26c#.........#99#.........#119#.",".........#141#..........#6fc#...........#5685#..#00#..........#8#.........#1289#","........#899#...........#9d#............#5c6c#..#9d#...........##..........#d28#",".......#982b#..........#129#.............#fcc#..#11#........................####",".......#91##............#91#.............#d91#..#89#............................","........##.............#41d#.............#42#...#81#............................",".......................#d1#..............#d84#...#8#............................",".......................#51#..............#d19#...###............................",".......................#5d#..............#dd8#..................................","......................#91#...............#195#..................................","......................#d2#...............#16#...................................",".....................#888#................#4d#..................................",".....................#98#.................#11#..................................",".....................###..................#919#.................................","..........................................#988#.................................","...........................................#89#.................................","............................................##.................................."]},"hen":{"w":61,"h":68,"p":[["#7c492c","b",0.3],["#ae794d","b",0.56],["#522a1e","b",0.1],["#c14040","f"],["#dcbf9f","b",0.88],["#3b1d19","b",0.0],["#72371f","b",0.21],["#a36233","b",0.45],["#99755c","b",0.51],["#663724","b",0.19],["#211211","x"],["#edd9be","b",1.0],["#782425","b",0.18],["#ca945f","b",0.69],["#8d4c28","b",0.34],["#955f3a","b",0.42],["#664a3a","b",0.26],["#bc906a","b",0.66],["#ba773f","b",0.57],["#825a40","b",0.37],["#d7ae84","b",0.81],["#b6987e","b",0.69]],"r":[".......###...................................................",".....##353#..................................................",".....#2333#..................................................","...##3333c#..................................................","...#333c9gg#.................................................","..#33367ehh1###..............................................","..#3356ec29ee70##............................................","..#3c56c9cc56idi2#..................................####.....","..#73cccg638g6i7d2#...............................##lkbl#....",".#d07333e3ekh2iil1#..............................#lb4bbga#...","#di77ee333ee527i1f1#............................#844bb8g4#...","####2c5cce6322ei14e0#...........................#d4b4jglbg#..","#...#3c5a55352e7fhff#..........................#7hbbjjlbl8#..","....#c3cc5c2a27ee6900#........................#f0hlgj8bl84#..","....#23335aa26e691eee#........................#ef229jh88bbl#.",".....##c55226676eehj6g#......................#f9fidfff84b4l4#",".......#5566eeee7ffhjh#......................#7f71kjf8k448b4#",".......#96666ii928kj8j#.....................#00i7dj0jkk484b8#",".......#2e527iih6l8lj0j#...................#00ee7j200j884b84#",".......#9652e7di8hj888j#..................#jd600090dkkgl484b#","......#6626667kil6hj8jjl#...............##hdflhii7jh11glg4bg#","......#96266eefikj1l0j8hl####.....######d44ki80ff907i92jb48#.","......#f0f6eee2e8h648jh8hj0il#####1ddkkk1188fdi7d106992jlgl#.","......#f1h6e0e6620684g8l80edkkkhf177118heh47kk1iddi00770gl4#.","......#hkk966e6656894l298eh4bdl14f8je8h7hlefh440f01d07k844#..","......#44k96665699f92ll7kkkbkdkh1kd990e14b1148ei7i72jk1gl#...",".....#hkbkhh6926220j666ehb4h11kii9lk82990ee8bb87ii299f0jg#...",".....#4kbk44ehe2262j1ikbki0kd19fiii08lj52e7hj06ei77999glb4#..",".....#b4bb44db102ff0d44dkh7e0dk91e1778ffa20kheii07729l4llj#..",".....#4b4b4bd4kd11kdk7lf7i87ieie07ih718ee552jf0i75552000jj#..",".....#kkh4b4b4bkbkk4deeee7eeif07iii7e718je2a0ie292029000##...",".....#hhhk4bk44kkddk49717e7e077iiei1le088h12a0i25995902#.....","......#hd4h4kbkkkkkii1ek17e777ei1fi18efj7ef125925529920#.....","......#kh4fk4db14d1141060696d6dfheekg61l0e7eea555222e02#.....","......#hh1dddd4hf17ihkh0e666060e6ejg9ejgeie6eeaa5529925#.....","......#141b4kkkh7417ii4j2e1666e7ff822682ee77e99a5299f0#......","......#fffl1kfdid1k77111j2j9ef07922299g92999e7e259095#.......",".......#hl117h111i77i705a5522292929529fe009559e9a299#........",".......#llhbhkid1777f9ff5agg229222222jfffjjjaaaa555#.........","........#1lhkd1e177f122f95a5ggg292288jjggga5522jj2#..........","........#fhdf11777ifff20f025aaaaagaaa55520f0ll98ll#..........",".........#f0f0ff1f009ff102105296290000fi77ikh1llb48#.........",".........#0f0ff091ff090022e600ei141di7eei77h1fflllg#.........","..........#00009ff000f299fe7i77144kkd77i777h440l4l#..........","...........#29299ff00009290777ii444dddiei77fh1884l#..........","............##0999990000f020f7744ddiii7i7fhh2098ll#..........","..............##9220f9999900f1f04kii77e7i9gl8jjlg#...........","................#5929925220d01d11i7ie0eef929jg8l#............",".................##222229551d9fkdiie996e02jj2gla#............","...................#a22555a2ddfii7e092292592j8##.............","....................#aaa2555ffdif009200955gjg#...............",".....................#25aaaa20ffee920955a9g##................","......................#22aaaa0909905552a5##..................",".......................#555aa#929955595##....................","........................#a5a#.##95229##......................",".........................#9#....#a5a#........................","........................#f0#.....#2#.........................","........................#j#......#0#.........................",".......................#10#......#f#.........................",".......................#f#......#hj#.........................","......................#1f#......#h#..........................","................######j1jg#.....#1#..........................","...............#8j8jjggf##2##..#hd#..........................","...............#####ajj#..#2g##1119#.........................","....................###..#5gg8jghg####.......................","........................######ahg#...........................","..............................###............................","..............................#.............................."]},"goat":{"w":67,"h":64,"p":[["#604a40","b",0.26],["#d0955d","b",0.67],["#d3b99b","b",0.8],["#865f48","b",0.39],["#a5663a","b",0.45],["#9f8168","b",0.54],["#4a2b24","b",0.1],["#816a5a","b",0.42],["#f3e9d5","b",1.0],["#d3a77b","b",0.73],["#79442b","b",0.27],["#8f5431","b",0.36],["#e5d3b9","b",0.91],["#bc7c47","b",0.56],["#443630","b",0.14],["#643728","b",0.19],["#b39a81","b",0.65],["#2b1f1d","b",0.0]],"r":["...........####....................................................","..........#7eee########............................................",".........#7e07he7577007##..........................................","........#7ee8g777e######0#.........................................","........#7e8g770e#......#e#........................................",".......#7eege50e#........###.......................................","#......#7h7077e#..##...............................................","###....#hheh70#..#77#..............................................","#07####227c26h#.#7e7#..............................................","#50egff82cc44f6#7ee7#..............................................",".#7he732c5a5gf630h0#...............................................","..##hcf53fg89a6ge0##...............................................","....#gfba3c53b677#.................................................","....#3dbf2g6e6f3e#............................................#....","....#414a203dbf6fa#...........................................###..","....#11b576fbabaa46#..........................................#cg#.","....#91426aa4a4abb46#.......................###########.......#88g#","...#8c197f4d4adfbd446##..#####.........#####abbbd1111da##.....#2c7#","..#22c2g64d4a4b6b14d4fh##f4d4b#########b4d111111dd11d4d23#....#4d2#","..#7e78g4dbabb6hb1d4d4f6a4192cc95aab44d111111dddd44114d9c4####4b9#.","..#e58cg9bba6h00bd11d4b6bd9999c8c5444dd11ddd4b44bfadd4dd92baaba35#.","..#0gg05fffhheg3ad1114ba4d11d1128c944dddd4d4baff6f41bab4d24bfff37#.","..#e07566h#e37c5b4d11dabd14411d128c2dddd1d4baaaafaddbaa4d19d0357#..","...###h63#.#0gc9bbd11dbd114411dd1c889d11dddd4bbbb4d4afabdddd2h##...","......#35#..#g2d4b4dd4bd1d4d1d4d988821dd1dddddd444dbafaabdd9c#.....","......#55#..#fbddb44db41144114bd9c88821ddddd2c1dd44aab4bbbb5c2#....","......#75#...#ab4ab44bd114d1d44d98cc8c21dd9128c9d4bab4dd4ba322#....","......#e#....#fa4aaba4d114dd44d19c21c888298c888c14aaad99dbf32g#....",".......#......#faafabd11d411dd11992288888888888899afadccdba425#....","..............#6fafa4d114414ddd1111c88888888998c223641c24ab4g#.....","...............#6aaa411dbdd4ddd11118882288889989ggff4c2d4ad4g#.....","...............#6fab4dd4ad4ddd4d11198cd42888ccc4b3ffac94abd42#.....","...............#6a3b44bab44ddd4bd119c24442cccccbfff3gcdba4dd#......","...............#ff53aafa444ddddf4d1ccc4444ccccgbfff58c4abd14#......","...............#ff55f6fabb4d4416b4d2cc2442ccc24ffggg8cbadd14#......","...............#f32236faaab4ab16541cccccgcccc23f5gc2ccbbd114#......","................#5gcgabaaaabab9eg22ccccccc2222g5760gcc4d1114#......","................#05gc44daf6fa42e5222222222222gg777ee2c2dddda#......",".................#77g25gdbaffgce5ggg222ggggg55577ehh0c89d44f#......","..................#775g794d4a27075555gggg5575770hh66hgc894bf#......","..................#eee0071ddb2h##77777575777###h6666hh2889bf#......","..................#70ehhe9d4bg#..###########...#6666hh72ccbf#......","...................#700heg4b5#.................#60066h0525b6#......","...................#577h#gdb2#..................#7776hh#g5a6a#.....","...................#g57#.#29c#...................#5700#.#5aaf#.....","...................#2g7#.#ccg#...................#7570#.#75a64#....","...................#2g#..#cc#.....................#g50#..#2ga4#....","...................#c2#.#c82#.....................#g50#...#cgf#....","...................#2c#.#882#.....................#gg#....#287#....","...................#52#.#g2c#.....................#g5#....#2cg#....","...................#05#.#332#.....................#g7#.....#2g#....","....................#5#.#00#......................#g5#.....#c2#....","....................#g#..#g#......................#5#......#cc#....","....................#g#..#8#.....................#g5#......#c2#....","....................#g#..#8#.....................#gg#......#cg#....","....................#2#..#8#.....................#g5#......#8g#....","...................#c2#..#8g#...................#55e#......#82#....","...................#cg#..#82#..................#5g0#......#2c5#....","..................#cc7#.#2c2#.................#he0#.......#8ch#....",".................#05g#..#cc7#.................#e0h#......#gcc#.....",".................#e0h#.#gc8#..................####.......#h70#.....",".................#00##.#e07#.............................#e3##.....","..................##...#h30#.............................###.......",".......................####........................................"]},"horse":{"w":73,"h":63,"p":[["#74351d","b",0.34],["#221517","x"],["#a15630","b",0.69],["#52241a","b",0.1],["#0b0709","x"],["#403635","b",0.18],["#934a28","b",0.57],["#301616","x"],["#c27a4e","b",1.0],["#7e7e7e","b",0.88],["#632d1c","b",0.23],["#431d18","b",0.0],["#2b282e","x"],["#7e4e37","b",0.52],["#171519","x"],["#b3673c","b",0.84],["#813d21","b",0.43],["#614d42","b",0.44]],"r":["........##...............................................................","....##..##...............................................................","....#3#.#b#..............................................................","....#7a#433####..........................................................",".....#ec43134ee##........................................................",".....#ce473d74eec###.....................................................","....#44eagaaa3b4ccee##...................................................","....#71bg60a0dg1e5ccee#..................................................","....#da0dga3agf01ee55cc##................................................","...#dd3dda30a3g61e4c5c5ce#...............................................","...#d0g1cb6ga3babe4ecc5cce#..............................................","...#6265bd600bb3be14eeccccc##............................................","...#26fddgg0a7a3b1744eeee5cce#...........................................","..#f6862d6g031a3a3b14ee4ecccce#..........................................","..#f26gdag0ab40ab00b44444eeecce##........................................",".#f2600330a377b63agg17444444cecee##...............#######................",".#226g2a7bb###7a630ga34b4444e4ceeb3##.........####b062266###.............","#fdhdd03###...#bg3ag60bbb7414e41113a3#########bb33a02fff226g##...........","#dchhh7#......#7ag3gggaa07bb41b7bab00a3aaaaaaa33ag66ff2662f26a##.........","#545h5#........#303ag60agg3gb7a0aag6gg0ggggg660aag8g0f266662f2ac##.......","#c5c1#.........#7aa3gg002a0fag6gg0g666662666ff2g0gf63afgg006f823ec#......",".#cec#..........#3g3agg2ga62gf6ggg22222ffffff882g0g20a20a00g6f821cc#.....","..###............#a3agg2agfgff66262fffffffffff8826g2606g300006f8a4c#.....",".................#3a302g026f826ff2fffffffff2fff8826g606ga0000062d4ec#....","..................#370262f28262ff2ff2ffffff2222f886g6g6gg600000gg4ec#....","..................#bba66f88fg668f6666ffffff2222628f6gg6gg6000g00044c#....",".................#177ag68f86g66826g662ffff22226662f2006g2200ggaa0445e#...",".................#77730282206g682g0g622f22266666gg6fgaggffg0gga3a445c#...",".................#bb7b0f80g0gg226ga066226666666g00g62a368f60g033344cc#...",".................#bb3ba20a000g226030666266666660aa0ggba282g00ab3b4ec5#...",".................#73a33g6g0a06666abag66666666g0aa33aa33ff600a33044eec#...","..................#ga2ba6ga30666g3ba0gg6ggg0000a3bbb73a6f60a333a44ecc#...","..................#0b0gbgg3300gg077a000000000aa3bb741473000aaa3344ece#...","..................#3b3gb3g3373a331b3a0g0000a33bbb1414447b30aa33744ecee#..","...................#b7307b32a7bb71bbbbb33333bbb7#4444144g6aaab0544e5ee#..","....................#71bb70fga7b777bbb333bbbb###.#111114b0aabb3944ecee#..","....................#114710806a3177777777####.....#771114b0a3b7944ecee#..","....................#371440260ab#########..........#b71141a2607944eece4#.","....................#ab7143600a#...................#bb71eeb2fgb544e45e4#.",".....................#b744bgaaa#....................#bb74e7g6g344444ec#..",".....................#3b7110030#....................#3bb145b0a3444444ce#.",".....................#33b1#a0b0#.....................#3b74c#aab44444eee#.",".....................#7a3#.#03a#.....................#b371#.#b71e44eeee#.","......................#33#.#3a3#......................#337#.#37554444c4#.","......................#1b#.#7b7#......................#bb1#..#0714444c4c#","......................#17#.#757#......................#b14#..#0b444eee4e#","......................#14#.#5h5#.......................#14#..#37444e44e9#","......................#44#.#cc1#.......................#44#...#44#44e4ee#","......................#44#..#e1#.......................#1#....#1#.#e4eec#",".......................#4#..#4#........................#1#....#1#.#94eec#",".......................#4#..#4#.......................#14#....#c#..##e4#.",".......................#4#..#e#.......................#14#....#c#..#.##..",".......................#e#...##.......................#1#.....#5#....##..",".......................#4#...#4#......................#1#.....#5#....#...",".......................#1#...#1#......................#1#.....#h1#.......","......................#51#...#5#.....................#11#.....#h5#.......","......................#14#..#55#.....................#14#.....#c1#.......","......................#1#...#ce#....................#1e#......#1#........",".....................#51#...#5#....................#144#......#5#........",".....................#1e#..#h5#....................#511#.....#55#........","....................#h11#..#51#...................#####......#h1#........","....................####..#hh5#.............................#hh1#........","..........................####...............................###........."]},"monkey":{"w":84,"h":67,"p":[["#61321f","b",0.21],["#311817","x"],["#8c6a5c","b",0.61],["#8e5430","b",0.5],["#48241b","b",0.07],["#ba8053","b",0.81],["#090505","x"],["#a2683e","b",0.64],["#5f453d","b",0.31],["#804929","b",0.41],["#d09d82","b",1.0],["#713e24","b",0.32],["#3c1d18","b",0.0],["#261414","x"],["#765a50","b",0.48],["#542a1c","b",0.14],["#47332e","b",0.16],["#b09183","b",0.88],["#1b0f0f","x"],["#a17b6b","b",0.74]],"r":[".........########...................................................................","......###4444fc1d##.................................................................",".....#14bbbb39bfc1d##...............................................................","....#4f99bb333334c11i#..............................................................","...#0b004f40b37790fc1i#.............................................................","...#3f444cc0937573041d#.............................................................","..#9b41ccc4409757394iee#............................................................","..#f811118ee849377bdh282#...........#########.......................................","..#jahggjaaaaj4b930j218f#......#####f0b044441#####..................................","..#je2jhjee2aa24bb00g8je#...###d4033b9b000fff44c11###...............................","..#egg8888gg2ahgfbf4c4228###1cf0b99999b99bff0bb0ff411##.............................","..#8g8geede18jje40b0i4j2e61ccc1c44fb933300bbb009000f4cd##...........................","..#j81ghe1cg2aa8499ed8jje614004c4f09993990fff000bb90f4fcd##.........................","..#a28ehhjejaaj84fbedh2j6d1409011403773b0f4ff4000bb99b441c1##.......................","..#228hhhaaaaje4b90gejji6d4fb0301493779b0bfff04f4f0990944c44d###....................","..#8ehhhhhaaje4b933ffgi6dccf9733bff7733390f44ff4f4009b99441cfffc##..................","..#igaagjaa28409779b1i6d1cbbb37539b3793bbbf44ccfc44f033bb4cdfb90fc#.................","...#2jheaah2gf97579016d10bbb97377bb37339b0c41c44f11400b000fc1f0bb0f##...............","...#ajhaaahhe4b77bbfdid44b730b7379b9339b9bfcc111c1144f0000f4c4f009b9c#..............","...#288jjjeee193794d614f3333bfb737bbb33b0b04111c1114ff00fc4fci1f0f99bf#.............","...#g8eggg82ecb3b0c61407773330f977b90bb9b9b041111cc00b00444446dc4440990#............","...#8222ee22gf9bcd6i1097557339cfb3bbb0bb3b900fff0bbb09b0f4c141id1cc4fb9f#...........","....#8eee2eg4bb1i6id4b975577b00c03b0009b990b000b33b00fbb0cc1c466d1cc4f990#..........",".....#g88gc44di6iid1f97555579f00cb00bf030b000097904dffbbbf4c1fi66dd1c4099f#.........","......##1diidiid111403555553bbc4df04b40bb0000b7b0cd40093b04cc446#6id1140994#........","........#0f1c1dcc1cf97555537bc41110cf4400000b7bc11dbf0390fc1fcf#.##idd1c099c#.......","........#9bff4fff4409755557bbc1iii1144c000b039c11i4bf93b0f114f1#...#6id140bb#.......","........#730fbbb9b0955555553b4d66id11c44409044cciib00330fc144fi#....##id1c09b#......","........#779f97777b957555773b0c666dd11f04490cc1d6cbfb3304414f4#.......#6d1fb34#.....",".........#53b975753b55555779b0f6did41ff0bfb111i6600f93904114f4#........#i1109b#.....",".........#579075357375557773bf4iid14bfbbb4c1d666ibfb93bf4c1441#.........#dc4b30#....",".........#7590c93753b77777333b41ic4c40f41i6666661bf9330441444#..........#6140994#...","..........#33bci90b3437757777b0ci1cc11d666666666f0093904114fc#...........#i1fb30#...","..........#77bbc6dd0407755773bfc611i#66666666666b0b390f4114ci#............#dc0934#..","..........#957bfdi66di955577994c6###.#666666666ibfb39041c444#.............#614b3b#..","...........#553041d666b5555790fc#...#6666666666cbfb9bf41c0c1#..............#d1f99#..","...........#553b0cdd6ic755579044#...#666ii6i666490bbf411ccc#................#dfb94#.","...........#7733b41d6i6955770ffcd#..#iddddii6660bbb0fc1144d#................#d409f#.","............#79bbf1d6i#f7579bfccd#.#idddddi6i6600000fcdccc#..................#cfb0#.","............#3b4ff1di#.#b73300fc1#.#d1ddddii6#db9bb0fcc4ci#..................#1fb0c#","............#ff1d4cdd#..#99b440fc#.#1cdddddi#.#03339f11cc#...................#dc004#","............#ff1dd11i#..#90440990#.#1cddddi#..#433390411i#....................#1004#","............#001dc4ci#..#04403bf4#.#dcddddd#...#0bb00bf16#....................#1004#","............#b0dd4f1#...#4f093011#..#1ddd11i#..#100040f41#....................#1f0f#","...........#f90dc44d#...#f093bf41#..#dddd1cd#..#i14f4fbf4d#...................#1f04#","...........#bb4d041#...#10b3b04c#...#dd1dc11#...#d1c4fbb41#...................#c00c#","...........#90cc04d#...#cb3394cd#...#i1cd1ccd#..#iccf000f41#......####.......#d4001#","...........#304ff1#....#fb39044#.....#cfcc4cd#...#104f0f1c1#.....#c0f#.......#1404d#","...........#90404i#....#0b9b41c#.....#c0fcc1d#...#104f004ddi#....#004#.......#c04c#.","..........#090c01#.....#b990141#.....#d004ccd#....#c4c0f4f1d#....#00#.......#cf0cd#.","..........#b0cc4i#....#cb394cc#.......#400411#.....#4c4004f1#....#40#......#1fb41i#.","..........#b01cd#.....#fb90ccd#.......#if00cd#.....#644f0f11#....#400#....#140f1d#..","..........#b011i#.....#0b3f1c#.........#c004di#.....#ic44f4c1#...#140f####cf0fcdi#..","..........#041d#......#fbb4cd#.........#df00cd#......#6c4441d#...#d1400000004cdi#...","..........#4cd#.......#fbfcc#...........#cf041#.......#iccc1d#....#d14f0004ccd##....",".........#1c1d#......#c40411#...........#dfff1#........#i1cc1i#....#dd1cc11di#......",".........#11dd#......#1c4c1#............#d444cd#........#idc1d#.....#########.......","........#d4c1#.......#ccc1d#..........##i111ccd#.........#dd1di#....................",".....###4ff08#.......#c11di#....######d14411cdg#........#iidcdd#....................","...##882j2jj8#.....##0f4cf#...##gggee8882288888#....####1c4cd18#....................",".##88jjjegje#.....#8bbb00e#..#g1e8##gdgjj8#####..###444cf0bb8je#....................","#e882g#6d2g#.....#ge2j322e#...####..#8e###.....##g2ej280bbjjj2g#....................","#ge8##.#2g#......#ge22jej#..........###........#ee82e8hjjje####.....................",".###....##......#88e2e28j#....................#e82eg2je####.........................","................#eg2djd2#.....................#g8ed2###.............................","................##2g886j#......................#####................................","..................######............................................................"]},"birds":{"w":84,"h":67,"p":[["#cab597","b",0.87],["#3b2c27","b",0.0],["#7a6858","b",0.41],["#53433a","b",0.16],["#6e513d","b",0.28],["#9a8873","b",0.6],["#653a26","b",0.15],["#130f0f","x"],["#ae9170","b",0.67],["#281e1e","x"],["#4e3327","b",0.07],["#b7a285","b",0.76],["#8d755c","b",0.49],["#4b241c","b",0.0],["#dcceb5","b",1.0],["#7e4f32","b",0.3],["#9a653e","b",0.44],["#68584b","b",0.3]],"r":[".............########...............................................................","..........###52555523##.............................................................","........##3552552222hhh###..........................................................",".......#3225252hh4666aahh1#.........................................................","......#355522h3add6666dddaa#........................................................","......#525hh2adddddd6f66ddd6#.......................................................",".....#395h5b5d99a666ggggf6ddd#......................................................","....#937h5bh9111208ffggggf6dd#......................................................","...#15c7717719539h3ddd666f6ddd#.....................................................","..#2b053777717911971ddd96ff6ddd#....................................................",".#52h3hc49799191393333ddd6fdddd#....................................................","#399999914a791313beb52aa9d6ddddd#...................................................","##93h2cc8a73hh35ee0b522b3a6dd44a1#..................................................","..####91179heeee05bbb52bhdd4b8c4a3##................................................","......#777h00e0b5555555b9dfb08234aa4##..............................................","......#7779eee0b5552hhb3ac00bc34614g49#.............................................",".....#999172eeee55222b050e05c39aggaaffa##...........................................","......#993h90e00b55beeeeee5534f1a4f69fg1a#..........................................","......#9913h5000beeee00ee5219aaa11agf91f4a#.........................................","......#7997heeeeeee0b2hhh466644c4391fga1g41#........................................","......#99910eeee00h53h221d66d666ccc43af11f61#.......................................","......#1335bhbb2b2hc52531196g66gf44c8ca491fa4#......................................",".....#93h5h13h35555bb5ba16611f66g4fg4443431f14#.....................................",".....#333332215bbb505208ad6611a9g6agg1433441414#....................................",".....#52h22hc505502022b82dddd6a9aa9aga3443444c11##..................................",".....#525135555hb008558005ad66f6afa966941c3314a799#.................................",".....#51c5510h5000cc88c8c3d66f6a9h3h186aa6fa99gaaa9#................................",".....#bbbh55hhb00502bbbb0b21939535b0bgfffa16f91fafff#...............................",".....#b32520b0hbb2000bbbb88b0bb0808ffgg6ff6916ag3a1af#..............................",".....#25235b20b0b0e0b858b8c4848c4f6fffgg6af699f81ff699#.............................",".....#hh3525200bhee0525c8024666666f666a4g19af1226aagf61#............................","......#52215500e500b0b882851a6a66fa661faaf31c5h6ggf114f6#...........................","......#b05c030eee00250b8h30h91aa6d6aa6a6fc8801aggfggfa9aa#..........................","......#3b0b00ee0ee0b25bc8395h99116f64a88c29776fffgggggg497#.........................",".......#be0eeeebbeb0b252hc39779999944239771aa1a6fg66gg46f19#........................",".......#5eebeebb2b550b25hc5239771196a66991ca11aaa16f6a6faaf#........................","........#0e80eeebb0b000e0b0082317771aaaa17cgf6a11aaaaf6aaa19#.......................","........#5ebbeeeee00000000bb0885h319991a973cc4aaaaaaaa111a919##.....................",".........#0ebeeeeee0055bb2b8c8b08882h1977934413h443a11319933939##...................",".........#5ebbe000e0e00bbbbb82c0b8ccc233199771331h433333399931939#..................","..........#be8eee20eeeeee000088828858c22hh331777777333977777713393#.................","..........#300beee000e0eeee0c088chc88cc22hh2h313h31911977777777777#.................","...........#20bb0ee000005be08hbbb8888h2cc2h332hh122h343191111911141##...............","............#c08b00e000e0250b88b088ccc33h222h3h2222822c4314aa11a411a9##.............",".............#cbb0000e00005800b888888ccc222hhh325800b2800b5h3144gf44f41##...........","..............#c858000e0000b00bb8c2cc2cc2h333hhh22288258bb00bc11a44444c41##.........","...............#2c5500bb00bbb0b80823hch3h222h33h222cc33h5hhh2c23171a343a4ca##.......","................#1555b85b0b5550bbb8ch2c222c22hh33hh3h3##############993449ac3##.....",".................##3ccc555bb555b888b08ccchhhh313h3####..............##977341131##...","...................##hcccc555522cccc5888chh39932h#....................##799931919#..","........##...........##3h2cccc5cc222hh3333117hh##.......................##79991111#.","........#4#............####h222c5cc22h72cc211##...........................##########",".........#h#...............#913hhhhhhh37cch##.......................................","..........#c#.............#11#########9799#.........................................","..........#92#...........#39#.........#33#..........................................",".....#####113c##.......##a##.........#h3#...........................................",".....###13324423##.####a3#..........#h4#............................................","........#####1311a#1193337###.......#2#.............................................",".............##7193113179911##.....#h#..............................................","...............#73993991197#......#2#...............................................","...............#1##1##113423######c49####...........................................","...............##..#..##99133193h223434h##..........................................","...............#...#....#7133329hh17771#.#..........................................",".........................#722392391317#.............................................",".........................#9##721##14223##...........................................",".........................##..###..########..........................................",".............................#......................................................"]}};
+  var LEGACY_CAT=[{n:"Roux tigré",m:"#e0813a",d:"#b85f1f",l:"#f6c48a",o:"#a8481a",p:"tabby"},
+      {n:"Noir",m:"#23232c",d:"#101017",l:"#454554",e:"#d5c23a"},
+      {n:"Gris tigré",m:"#8a909c",d:"#626874",l:"#c3c8d2",o:"#4c515c",p:"tabby",e:"#7ac26a"},
+      {n:"Blanc",m:"#f4f1ec",d:"#cfc9bf",l:"#ffffff",e:"#5aa0d8"},
+      {n:"Siamois",m:"#efdcb8",d:"#cdb98f",l:"#faf0d6",o:"#5a3d2b",p:"points",e:"#5aa0d8"},
+      {n:"Tuxedo",m:"#23232c",d:"#101017",l:"#454554",o:"#f4f1ec",p:"tux"},
+      {n:"Calico",m:"#f4f1ec",d:"#cfc9bf",l:"#ffffff",o:"#e0813a",x:"#2b2b34",p:"calico"}];
+/* ---- cœur de recoloration des animaux (partagé app + tests) ---- */
+function pc_hx(h){var n=parseInt(h.slice(1),16);return [n>>16,(n>>8)&255,n&255];}
+function pc_blend(a,b,t){var A=pc_hx(a),B=pc_hx(b);return "#"+[0,1,2].map(function(i){return Math.round(A[i]+(B[i]-A[i])*t).toString(16).padStart(2,"0");}).join("");}
+function pc_ramp(m,d,l){
+  var st=[pc_blend(d,"#000000",.4),d,m,pc_blend(m,l,.55),l];
+  return function(t){
+    var p=Math.max(0,Math.min(1,t))*4,i=Math.min(3,Math.floor(p));
+    return pc_blend(st[i],st[i+1],p-i);
+  };
+}
+function pc_rng(seed){var a=seed>>>0;return function(){a=(a+0x6D2B79F5)>>>0;var t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};}
+function pc_seed(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
+/* zones en fractions de la boîte de l'animal : [x0,y0,x1,y1] */
+var PC_ZONES={
+  dog:{head:[.22,.2,.26,.2],tail:[.85,.3,.17,.22],legs:.82,chest:[.25,.55,.17,.17],cheek:[.12,.3,.1,.07]},
+  cat:{head:[.2,.22,.23,.24],tail:[.86,.77,.16,.17],legs:.82,chest:[.2,.58,.14,.2],cheek:[.1,.32,.09,.07]},
+  rabbit:{head:[.28,.4,.28,.22],tail:[.95,.8,.07,.1],legs:.9,chest:[.25,.65,.12,.18],cheek:[.1,.38,.1,.07],rear:[.7,.58,.3,.28],ears:[.42,.12,.2,.14]},
+  fox:{head:[.12,.22,.15,.2],tail:[.86,.72,.16,.22],legs:.78,chest:[.18,.5,.1,.2],cheek:[.07,.28,.07,.07]},
+  snake:{head:[.1,.2,.12,.22],tail:[.9,.5,.1,.45],legs:2,chest:[0,0,0,0],cheek:[0,0,0,0]},
+  spider:{head:[.5,.45,.2,.2],tail:[0,0,0,0],legs:2,chest:[0,0,0,0],cheek:[0,0,0,0]},
+  hen:{head:[.18,.15,.2,.16],tail:[.8,.3,.2,.28],legs:.88,chest:[.3,.45,.15,.2],cheek:[.1,.2,.08,.07]},
+  goat:{head:[.12,.2,.14,.2],tail:[.95,.15,.06,.12],legs:.72,chest:[.25,.5,.1,.15],cheek:[.07,.22,.06,.07]},
+  horse:{head:[.1,.2,.12,.2],tail:[.93,.55,.08,.3],legs:.72,chest:[.25,.4,.1,.15],cheek:[.05,.22,.05,.06]},
+  monkey:{head:[.1,.15,.12,.2],tail:[.85,.5,.12,.4],legs:.82,chest:[.25,.4,.1,.15],cheek:[.06,.18,.06,.06]},
+  birds:{head:[.15,.2,.18,.2],tail:[.85,.75,.18,.15],legs:.9,chest:[.3,.5,.18,.22],cheek:[.1,.25,.08,.07]}
+};
+function pc_inE(x,y,w,h,e){if(!e||!e[2])return false;var dx=(x/w-e[0])/e[2],dy=(y/h-e[1])/e[3];return dx*dx+dy*dy<=1;}
+/* art : {w,h,p:[[hex,role,tone]],r:[rows]} ; v : variante ; id : animal ; renvoie w*h couleurs ("#hex" | "k" contour | null) */
+function pc_paint(art,v,id){
+  var w=art.w,h=art.h,out=new Array(w*h).fill(null),tone=new Array(w*h).fill(-1),y,x,ch,k;
+  var chars="0123456789abcdefghijklmnopqrstuvwxyz",ramp=v.raw?null:pc_ramp(v.m,v.d,v.l);
+  var cols=art.p.map(function(p){
+    if(v.raw)return p[0];
+    if(p[1]==="b")return ramp(p[2]);
+    if(p[1]==="x")return v.k||p[0];
+    return p[0];
+  });
+  for(y=0;y<h;y++)for(x=0;x<w;x++){
+    ch=art.r[y].charAt(x);
+    if(ch===".")continue;
+    if(ch==="#"){out[y*w+x]="k";continue;}
+    k=chars.indexOf(ch);out[y*w+x]=cols[k];
+    if(art.p[k][1]==="b")tone[y*w+x]=art.p[k][2];
+  }
+  if(v.raw||!v.p||!v.o)return out;
+  var Z=PC_ZONES[id]||{},rn=pc_rng(pc_seed(id+v.n)),ro=pc_ramp(v.o,pc_blend(v.o,"#000000",.3),pc_blend(v.o,"#ffffff",.25));
+  var rx=v.x?pc_ramp(v.x,pc_blend(v.x,"#000000",.3),pc_blend(v.x,"#ffffff",.25)):ro;
+  function paint(fn,rr){for(var yy=0;yy<h;yy++)for(var xx=0;xx<w;xx++){var t=tone[yy*w+xx];if(t>=0&&fn(xx,yy,t))out[yy*w+xx]=(rr||ro)(t);}}
+  function E(xx,yy,n){return pc_inE(xx,yy,w,h,Z[n]);}
+  function blobs(n,rad,rr,only){
+    var cs=[],tries=0;
+    while(cs.length<n&&tries++<4000){
+      var cx=Math.floor(rn()*w),cy=Math.floor(rn()*h);
+      if(tone[cy*w+cx]>=0&&(!only||only(cx,cy)))cs.push([cx,cy,rad*(.6+rn()*.8),rn()*6]);
+    }
+    paint(function(xx,yy){
+      for(var i=0;i<cs.length;i++){var c=cs[i],dx=xx-c[0],dy=(yy-c[1])*1.15,d=Math.sqrt(dx*dx+dy*dy);if(d<=c[2]*(1+.25*Math.sin(Math.atan2(dy,dx)*3+c[3])))return true;}
+      return false;
+    },rr);
+  }
+  var legs=function(yy){return yy>h*Z.legs;};
+  switch(v.p){
+    case "spots":blobs(Math.round(w*h/110),1.7,ro,function(xx,yy){return !legs(yy)||rn()<.3;});break;
+    case "tan":paint(function(xx,yy){return legs(yy)||E(xx,yy,"chest")||E(xx,yy,"cheek");});break;
+    case "tabby":paint(function(xx,yy){
+      if(E(xx,yy,"tail"))return Math.floor((xx+yy)/3)%2===0;
+      if(E(xx,yy,"head"))return false;
+      return xx>w*.28&&xx<w*.8&&yy<h*.8&&((xx+Math.round(2*Math.sin(yy*.5)))%6+6)%6<2;});break;
+    case "points":paint(function(xx,yy){return E(xx,yy,"head")||E(xx,yy,"tail")||legs(yy);});break;
+    case "tux":paint(function(xx,yy){return E(xx,yy,"chest")||E(xx,yy,"cheek")||yy>h*.93;});break;
+    case "calico":blobs(5,4,ro);blobs(3,3,rx);break;
+    case "dutch":paint(function(xx,yy){return E(xx,yy,"rear")||E(xx,yy,"ears");});break;
+    case "speckled":paint(function(){return rn()<.13;});break;
+    case "dapple":blobs(Math.round(w*h/90),2,ro);break;
+    case "pinto":blobs(4,6,rx);break;
+    case "pied":blobs(5,5,ro);break;
+    case "alpine":paint(function(xx,yy){return E(xx,yy,"head")||legs(yy);});break;
+    case "cap":paint(function(xx,yy){return E(xx,yy,"head")&&yy<h*.12;});break;
+  }
+  return out;
+}
+
+  var PWN=88,PHN=72;
+  function pxImage(g,w,h,S){
+    var cv=document.createElement("canvas");cv.width=w*S;cv.height=h*S;
+    var ctx=cv.getContext("2d"),x,y,x2,col;
+    for(y=0;y<h;y++){
+      x=0;
+      while(x<w){
+        col=g[y*w+x];
+        if(!col){x++;continue;}
+        x2=x;while(x2+1<w&&g[y*w+x2+1]===col)x2++;
+        ctx.fillStyle=col;ctx.fillRect(x*S,y*S,(x2-x+1)*S,S);
+        x=x2+1;
+      }
+    }
+    return cv.toDataURL("image/png");
+  }
+  function petHD(id,vi){
+    var d=petDef(id),art=PETART[id];if(!d||!art)return "";
+    var px=pc_paint(art,d.v[vi],id),g=new Array(PWN*PHN).fill(null),ox=(PWN-art.w)>>1,oy=PHN-3-art.h,x,y,v;
+    /* ombre au sol */
+    var minx=art.w,maxx=0;
+    for(x=0;x<art.w;x++)for(y=art.h-6;y<art.h;y++)if(px[y*art.w+x]){if(x<minx)minx=x;if(x>maxx)maxx=x;}
+    var cx=ox+(minx+maxx)/2,rx=Math.max(8,(maxx-minx)/2+3);
+    for(x=0;x<PWN;x++)for(y=PHN-3;y<PHN;y++){
+      var ddx=(x+.5-cx)/rx,ddy=(y+.5-(PHN-1.6))/1.5;
+      if(ddx*ddx+ddy*ddy<=1)g[y*PWN+x]="rgba(0,0,0,.28)";
+    }
+    for(y=0;y<art.h;y++)for(x=0;x<art.w;x++){
+      v=px[y*art.w+x];
+      if(v)g[(y+oy)*PWN+x+ox]=(v==="k")?OUTL:v;
+    }
+    return '<svg viewBox="0 0 '+PWN+' '+PHN+'" preserveAspectRatio="xMidYMax meet" aria-hidden="true"><image href="'+pxImage(g,PWN,PHN,4)+'" x="0" y="0" width="'+PWN+'" height="'+PHN+'" preserveAspectRatio="none"/></svg>';
+  }
   var PET_FREE=["dog","cat"];
   function petDef(id){for(var i=0;i<PETS.length;i++)if(PETS[i].id===id)return PETS[i];return null;}
   var petMemo=new Map();
@@ -1408,7 +1972,13 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
     vi=(vi>=0&&vi<d.v.length)?vi:0;
     var key=id+"#"+vi+(legacy?"L":""),out=petMemo.get(key);
     if(out)return out;
-    var c=petCtx(),pal=d.v[vi];
+    if(!legacy){
+      out=petHD(id,vi);
+      if(petMemo.size>120)petMemo.clear();
+      petMemo.set(key,out);
+      return out;
+    }
+    var c=petCtx(),pal=(id==="cat"?LEGACY_CAT[vi]:d.v[vi]);
     PDRAW[id](c,pal);
     var g=c.g,o=g.slice(),x,y;
     for(y=0;y<PH;y++)for(x=0;x<PW;x++){
@@ -1419,9 +1989,7 @@ input::placeholder,textarea::placeholder{color:#7d74ad}
       var dx=(x+.5-14)/13,dy=(y+.5-21.6)/1.1;
       if(dx*dx+dy*dy<=1)o[y*PW+x]="rgba(0,0,0,.32)";
     }
-    if(!legacy){
-      out='<svg viewBox="0 0 '+PW+' '+PH+'" preserveAspectRatio="xMidYMax meet" aria-hidden="true"><image href="'+hdImage(o,PW,PH,HD_PASSES,true)+'" x="0" y="0" width="'+PW+'" height="'+PH+'" preserveAspectRatio="none"/></svg>';
-    }else{
+    {
       var body="";
       for(y=0;y<PH;y++){
         x=0;
